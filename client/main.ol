@@ -10,7 +10,9 @@ define cmd_help {
 
 define cmd_install {
 	if(#args < 2) {
-		println@Console("error: Specify at least one package name (e.g. jpm install PACKAGE)")()
+		println@Console("error: Specify at least one package name (e.g. jpm install PACKAGE)")();
+		halt.status = 1;
+		halt@Runtime(halt)()
 	}
 	else {
 		println@Console("Installing " + args[1])()
@@ -18,6 +20,12 @@ define cmd_install {
 }
 
 main {
+	install(EnvironmentVariableDoesNotExist =>
+		println@Console("dwadwajkl")()
+	);
+
+	getEnvironmentVariable@Runtime("TERM")(term);
+	println@Console(term)();
 	if(args[0] == "-h" || args[0] == "--help") {
 		cmd_help
 	}
