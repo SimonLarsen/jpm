@@ -30,10 +30,13 @@ define cmd_help {
 }
 
 main {
-	if(args[0] == "install") {
+	if(args[0] == "-h" || args[0] == "--help") {
+		cmd_help
+	}
+	else if(args[0] == "install") {
 		cmd_install
 	}
-	else if(args[0] == "-h" || args[0] == "--help") {
-		cmd_help
+	else if(args[0] == "list") {
+		listInstalledPackages@Client()()
 	}
 }
