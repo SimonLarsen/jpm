@@ -37,6 +37,9 @@ main {
 		cmd_install
 	}
 	else if(args[0] == "list") {
-		listInstalledPackages@Client()()
+		list@Client()()
+	}
+	else if(args[0] == "search") {
+		search@Client(args[1])()
 	}
 }

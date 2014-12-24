@@ -9,27 +9,14 @@ inputPort Input {
 	Interfaces: ClientInterface
 }
 
-execution { sequential }
-
-define createDatabase {
-	scope(CreateInstalled) {
-		install(SQLException => nullProcess );
-
-		update@Database("create table INSTALLED (
-			NAME varchar(128) not null unique,
-			VERSION varchar(64) not null
-		)")()
-	};
-
-	undef(query)
-}
+execution { single }
 
 define connectDatabase {
 	with(connectRequest) {
 		.host = "";
 		.driver = "derby_embedded";
 		.port = 0;
-		.database = ENV_HOME + "/.jpm/db";
+		.database = "db";
 		.username = "";
 		.password = "";
 		.attributes = "create=true"
@@ -37,7 +24,16 @@ define connectDatabase {
 	connect@Database(connectRequest)();
 	undef(connectRequest);
 
-	createDatabase
+	// IF EXISTS is not implemented in Derby
+	// Catch exception instead
+	scope(CreateInstall) {
+		install(SQLException => nullProcess);
+
+		update@Database("CREATE TABLE installed (
+			name VARCHAR(128) NOT NULL UNIQUE,
+			version VARCHAR(64) NOT NULL
+		)")()
+	};
 }
 
 define parseConfig {
@@ -47,12 +43,11 @@ define parseConfig {
 		if(section != "options") {
 			Servers.(section).Location = inifile.(section).Location
 		}
-	};
-
-	undef(inifile)
+	}
 }
 
 init {
+	println@Console("INIT")();
 	getVariable@Environment("HOME")(ENV_HOME);
 	parseConfig;
 	connectDatabase
@@ -64,18 +59,19 @@ main {
 			package = request.packages[i];
 			println@Console("Installing " + package)();
 
-			query = "insert into INSTALLED values (:package, :version)";
-			query.package = package;
-			query.version = "1.0";
+			query = "INSERT INTO installed VALUES (:name, :version)";
+			query.name = package;
+			query.version = "NA";
 			update@Database(query)()
 		}
 	} ] { nullProcess }
 
-	[ listInstalledPackages()(response) {
-		query@Database("select * from INSTALLED")(packages);
-		for(i = 0, i < #packages, i++) {
-			println@Console(packages[i].NAME)();
-			response[i].name = packages[i].NAME
+	[ list()(response) {
+		query@Database("SELECT * FROM installed")(packages);
+		for(i = 0, i < #packages.row, i++) {
+			println@Console(packages.row[i].NAME)();
+			response[i].name = packages.row[i].NAME;
+			response[i].version = packages.row[i].VERSION
 		}
 	} ] { nullProcess }
 
