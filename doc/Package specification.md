@@ -9,7 +9,7 @@
 
 ## INI file format ##
 
-```
+```ini
 [Package]
 Name = Package name
 Version = Package version
