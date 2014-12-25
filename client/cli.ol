@@ -18,6 +18,10 @@ embedded {
 	Jolie: "client.ol" in Client
 }
 
+define cmd_help {
+	println@Console(HELP_TEXT)()
+}
+
 define cmd_install {
 	for(i = 1, i < #args, i++) {
 		request.packages[i-1] = args[i]
@@ -25,8 +29,22 @@ define cmd_install {
 	installPackages@Client(request)()
 }
 
-define cmd_help {
-	println@Console(HELP_TEXT)()
+define cmd_list {
+	list@Client()(res);
+	for(i = 0, i < #res.package, i++) {
+		println@Console(res.package[i].name + "\t" + res.package[i].version)()
+	};
+
+	undef(res)
+}
+
+define cmd_search {
+	search@Client(args[1])(res);
+	for(i = 0, i < #res.package, i++) {
+		println@Console(res.package[i].name + "\t" + res.package[i].version)()
+	};
+
+	undef(res)
 }
 
 main {
@@ -37,9 +55,12 @@ main {
 		cmd_install
 	}
 	else if(args[0] == "list") {
-		list@Client()()
+		cmd_list
 	}
 	else if(args[0] == "search") {
-		search@Client(args[1])()
+		cmd_search
+	}
+	else {
+		println@Console("error: Unknown command \"" + args[0] + "\"")()
 	}
 }

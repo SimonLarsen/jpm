@@ -3,13 +3,17 @@ type InstallPackagesRequest : void {
 }
 
 type ListResponse : void {
-	.name[0,*] : string
-	.version[0,*] : string
+	.package[0,*] : void {
+		.name : string
+		.version : string
+	}
 }
 
 type SearchResponse : void {
-	.name[0,*] : string
-	.version[0,*] : string
+	.package[0,*] : void {
+		.name : string
+		.version : string
+	}
 }
 
 interface ClientInterface {

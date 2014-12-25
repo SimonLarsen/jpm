@@ -16,7 +16,7 @@ define connectDatabase {
 		.host = "";
 		.driver = "derby_embedded";
 		.port = 0;
-		.database = "db";
+		.database = ENV_HOME + "/.jpm/db";
 		.username = "";
 		.password = "";
 		.attributes = "create=true"
@@ -33,7 +33,7 @@ define connectDatabase {
 			name VARCHAR(128) NOT NULL UNIQUE,
 			version VARCHAR(64) NOT NULL
 		)")()
-	};
+	}
 }
 
 define parseConfig {
@@ -47,7 +47,6 @@ define parseConfig {
 }
 
 init {
-	println@Console("INIT")();
 	getVariable@Environment("HOME")(ENV_HOME);
 	parseConfig;
 	connectDatabase
@@ -69,13 +68,18 @@ main {
 	[ list()(response) {
 		query@Database("SELECT * FROM installed")(packages);
 		for(i = 0, i < #packages.row, i++) {
-			println@Console(packages.row[i].NAME)();
-			response[i].name = packages.row[i].NAME;
-			response[i].version = packages.row[i].VERSION
+			response.package[i].name = packages.row[i].NAME;
+			response.package[i].version = packages.row[i].VERSION
 		}
 	} ] { nullProcess }
 
-	[ search(request)(response) {
-		nullProcess
+	[ search(pattern)(response) {
+		q = "SELECT * FROM installed WHERE name LIKE '%" + pattern + "%'";
+		q.pattern = request;
+		query@Database(q)(packages);
+		for(i = 0, i < #packages.row, i++) {
+			response.package[i].name = packages.row[i].NAME;
+			response.package[i].version = packages.row[i].VERSION
+		}
 	} ] { nullProcess }
 }
