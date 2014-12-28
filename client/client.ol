@@ -3,6 +3,12 @@ include "client.iol"
 include "database.iol"
 include "environment.iol"
 include "ini_utils.iol"
+include "webget.iol"
+include "zip_utils.iol"
+include "file.iol"
+include "file_utils.iol"
+
+include "client_install.ol"
 
 inputPort Input {
 	Location: "local"
@@ -11,21 +17,43 @@ inputPort Input {
 
 execution { single }
 
+define parseConfig {
+	getVariable@Environment("HOME")(ENV_HOME);
+	parseIniFile@IniUtils(ENV_HOME + "/.jpm/rc.ini")(inifile);
+
+	// Setup defaults
+	Config.DatabaseDir = ENV_HOME + "/.jpm/db";
+	Config.DataDir = ENV_HOME + "/.jpm/data";
+	Config.SpecDir = ENV_HOME + "/.jpm/specs";
+
+	foreach(section : inifile) {
+		// Parse options
+		if(section == "options") {
+			// DataDir = [path]
+			if(inifile.options.DataDir != null) {
+				Config.DataDir = inifile.options.DataDir
+			}
+		}
+		// Add server definitions
+		else {
+			Servers.(section).Location = inifile.(section).Location
+		}
+	}
+}
+
 define connectDatabase {
 	with(connectRequest) {
 		.host = "";
 		.driver = "derby_embedded";
 		.port = 0;
-		.database = ENV_HOME + "/.jpm/db";
+		.database = Config.DatabaseDir;
 		.username = "";
 		.password = "";
 		.attributes = "create=true"
 	};
 	connect@Database(connectRequest)();
-	undef(connectRequest);
 
-	// IF EXISTS is not implemented in Derby
-	// Catch exception instead
+	// IF EXISTS is not implemented in Derby. Catch exeception instead
 	scope(CreateInstall) {
 		install(SQLException => nullProcess);
 
@@ -36,33 +64,18 @@ define connectDatabase {
 	}
 }
 
-define parseConfig {
-	parseIniFile@IniUtils(ENV_HOME + "/.jpm/rc.ini")(inifile);
-
-	foreach(section : inifile) {
-		if(section != "options") {
-			Servers.(section).Location = inifile.(section).Location
-		}
-	}
-}
-
 init {
-	getVariable@Environment("HOME")(ENV_HOME);
 	parseConfig;
+
+	// Create missing directories
+	mkdir@File(Config.DataDir)();
+	mkdir@File(Config.SpecDir)();
 	connectDatabase
 }
 
 main {
 	[ installPackages(request)() {
-		for(i = 0, i < #request.packages, i++) {
-			package = request.packages[i];
-			println@Console("Installing " + package)();
-
-			query = "INSERT INTO installed VALUES (:name, :version)";
-			query.name = package;
-			query.version = "NA";
-			update@Database(query)()
-		}
+		clientInstallPackages
 	} ] { nullProcess }
 
 	[ list()(response) {

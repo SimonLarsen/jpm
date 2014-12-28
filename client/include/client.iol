@@ -2,7 +2,7 @@ type InstallPackagesRequest : void {
 	.packages[0,*] : string
 }
 
-type ListResponse : void {
+type PackageListResponse : void {
 	.package[0,*] : void {
 		.name : string
 		.version : string
@@ -19,6 +19,6 @@ type SearchResponse : void {
 interface ClientInterface {
 	RequestResponse:
 		installPackages(InstallPackagesRequest)(void),
-		list(void)(ListResponse),
+		list(void)(PackageListResponse),
 		search(string)(SearchResponse)
 }
