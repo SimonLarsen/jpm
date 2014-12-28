@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>jpm - Install packages</title>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+	</head>
+	<body>
+		<div class="container">
+			<h1>jpm</h1>
+			<h2>Install packages</h2>
+			<form action="installPackages" method="GET">
+				<div class="form-group">
+					<label for="packages">Enter packages</label>
+					<input type="text" class="form-control" id="packages" name="packages" placeholder="Comma separated list of packages">
+				</div>
+				<button type="submit" class="btn btn-default">Install</button>
+			</form>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,4 @@
+[Package]
+Name = bar
+Version = 1.0
+Description = Bar library for barring bars

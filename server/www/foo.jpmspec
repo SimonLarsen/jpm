@@ -1,0 +1,5 @@
+[Package]
+Name = foo
+Version = 1.0
+Description = Simple foo library for foo stuff
+Depends = bar >= 1.0

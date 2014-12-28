@@ -15,7 +15,7 @@ inputPort Input {
 	Interfaces: ClientInterface
 }
 
-execution { single }
+execution { sequential }
 
 define parseConfig {
 	getVariable@Environment("HOME")(ENV_HOME);
@@ -80,16 +80,6 @@ main {
 
 	[ list()(response) {
 		query@Database("SELECT * FROM installed")(packages);
-		for(i = 0, i < #packages.row, i++) {
-			response.package[i].name = packages.row[i].NAME;
-			response.package[i].version = packages.row[i].VERSION
-		}
-	} ] { nullProcess }
-
-	[ search(pattern)(response) {
-		q = "SELECT * FROM installed WHERE name LIKE '%" + pattern + "%'";
-		q.pattern = request;
-		query@Database(q)(packages);
 		for(i = 0, i < #packages.row, i++) {
 			response.package[i].name = packages.row[i].NAME;
 			response.package[i].version = packages.row[i].VERSION

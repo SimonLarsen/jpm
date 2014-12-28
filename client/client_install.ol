@@ -1,9 +1,5 @@
 define clientInstallPackages {
 	for(i = 0, i < #request.packages, i++) {
-		install(IOException =>
-			println@Console("error: Could not get package " + request.packages[i])()
-		);
-
 		package = request.packages[i];
 		println@Console("Installing: " + package)();
 
@@ -33,8 +29,15 @@ define clientInstallPackages {
 		writereq.filename = tempfile;
 		writeFile@File(writereq)();
 
+		// Unzip archive to data directory
 		unzipreq.filename = tempfile;
 		unzipreq.targetPath = Config.DataDir;
-		unzip@ZipUtils(unzipreq)()
+		unzip@ZipUtils(unzipreq)();
+
+		// Update database
+		query = "INSERT INTO installed VALUES (:name, :version)";
+		query.name = spec.Package.Name;
+		query.version = spec.Package.Version;
+		update@Database(query)()
 	}
 }
