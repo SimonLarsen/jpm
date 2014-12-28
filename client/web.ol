@@ -8,7 +8,7 @@ include "client.iol"
 
 constants {
 	WebLocation = "socket://localhost:8001/",
-	RootContentDirectory = "www/",
+	ContentDirectory = "www/",
 }
 
 execution { concurrent }
@@ -33,14 +33,6 @@ embedded {
 	Jolie: "client.ol" in Client
 }
 
-init {
-	if (is_defined(args[0])) {
-		documentRootDirectory = args[0]
-	} else {
-		documentRootDirectory = RootContentDirectory
-	}
-}
-
 main {
 	[ default(request)(response) {
 		scope(s) {
@@ -56,7 +48,7 @@ main {
 			if (s.result[0] == "") {
 				s.result[0] = "index.html"
 			};
-			file.filename = documentRootDirectory + s.result[0];
+			file.filename = ContentDirectory + s.result[0];
 
 			getMimeType@File(file.filename)(mime);
 			mime.regex = "/";
