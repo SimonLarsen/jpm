@@ -33,6 +33,10 @@ embedded {
 	Jolie: "client.ol" in Client
 }
 
+init {
+	println@Console("Web client running at adress: " + WebLocation)()
+}
+
 main {
 	[ default(request)(response) {
 		scope(s) {
