@@ -14,6 +14,7 @@ interface WebGetInterface {
 
 outputPort WebGet {
 	Protocol: http {
+		.method = "GET";
 		.osc.getSpec.alias = "%{name}.jpmspec";
 		.osc.getPackage.alias = "%{name}.zip"
 	}

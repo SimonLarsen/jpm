@@ -3,12 +3,11 @@ include "client.iol"
 include "database.iol"
 include "environment.iol"
 include "ini_utils.iol"
+include "yaml_utils.iol"
 include "webget.iol"
 include "zip_utils.iol"
 include "file.iol"
 include "file_utils.iol"
-
-include "client_install.ol"
 
 inputPort Input {
 	Location: "local"
@@ -61,6 +60,50 @@ define connectDatabase {
 			name VARCHAR(128) NOT NULL UNIQUE,
 			version VARCHAR(64) NOT NULL
 		)")()
+	}
+}
+
+define clientInstallPackages {
+	for(i = 0, i < #request.packages, i++) {
+		package = request.packages[i];
+		println@Console("Installing: " + package)();
+
+		// Retrieve package specification
+		WebGet.location = Servers.core.Location;
+
+		specreq.name = package;
+		getSpec@WebGet(specreq)(specdata);
+
+		// Write spec to file
+		writereq.content = specdata;
+		writereq.filename = Config.SpecDir + "/" + package + ".jpmspec";
+		writeFile@File(writereq)();
+
+		// Parse spec file
+		parseYamlFile@YamlUtils(Config.SpecDir+"/"+package+".jpmspec")(spec);
+
+		// Download package
+		pkgreq.name = spec.name + "-" + spec.version;
+		getPackage@WebGet(pkgreq)(pkgdata);
+
+		tempreq.prefix = "jpm";
+		tempreq.suffix = ".zip";
+		createTempFile@FileUtils(tempreq)(tempfile);
+
+		writereq.content = pkgdata;
+		writereq.filename = tempfile;
+		writeFile@File(writereq)();
+
+		// Unzip archive to data directory
+		unzipreq.filename = tempfile;
+		unzipreq.targetPath = Config.DataDir;
+		unzip@ZipUtils(unzipreq)();
+
+		// Update database
+		query = "INSERT INTO installed VALUES (:name, :version)";
+		query.name = spec.name;
+		query.version = spec.version;
+		update@Database(query)()
 	}
 }
 
