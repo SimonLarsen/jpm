@@ -73,25 +73,38 @@ define clientInstallPackages {
 
 		specreq.name = package;
 		getSpec@WebGet(specreq)(specdata);
+		if(specdata == null) {
+			println@Console("error: Package \"" + package + "\" not found")();
+			throw(PackageNotFound)
+		};
 
 		// Write spec to file
 		writereq.content = specdata;
 		writereq.filename = Config.SpecDir + "/" + package + ".jpmspec";
+		writereq.format = "text";
 		writeFile@File(writereq)();
 
 		// Parse spec file
-		parseYamlFile@YamlUtils(Config.SpecDir+"/"+package+".jpmspec")(spec);
+		parseYamlFile@YamlUtils(Config.SpecDir + "/" + package + ".jpmspec")(spec);
 
 		// Download package
-		pkgreq.name = spec.name + "-" + spec.version;
+		pkgreq.name = spec.name;
+		pkgreq.version = spec.version;
 		getPackage@WebGet(pkgreq)(pkgdata);
+		if(pkgdata == null) {
+			println@Console("error: Could not download \"" + pkgreq.name + ".zip\"")();
+			throw(PackageNotFound)
+		};
 
 		tempreq.prefix = "jpm";
 		tempreq.suffix = ".zip";
 		createTempFile@FileUtils(tempreq)(tempfile);
+		tempfile = "/home/simon/testfile.zip";
+		println@Console("Created temp. file " + tempfile)();
 
 		writereq.content = pkgdata;
 		writereq.filename = tempfile;
+		writereq.format = "binary";
 		writeFile@File(writereq)();
 
 		// Unzip archive to data directory

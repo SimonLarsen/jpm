@@ -68,24 +68,9 @@ main {
 		}
 	} ] { nullProcess }
 
-	[ listPackages()(response) {
-		list@Client()(packages);
-		file.filename = "templates/listPackages.html";
-		file.format = "text";
-		readFile@File(file)(template);
-
-		template.packages = "";
-		for(i = 0, i < #packages.package, i++) {
-			template.packages += "<tr><td>" + packages.package[i].name
-				+ "</td><td>" + packages.package[i].version + "</td></tr>"
-		};
-		template@Format(template)(response);
-		format = "html"
-	} ] { nullProcess }
-
 	[ installPackages(request)(response) {
 		if(request.packages == null) {
-			file.filename = "www/installPackages.html";
+			file.filename = "templates/installPackages.html";
 			file.format = "text";
 			readFile@File(file)(response);
 			format = "html"
@@ -102,5 +87,35 @@ main {
 			};
 			installPackages@Client(installreq)()
 		}
+	} ] { nullProcess }
+
+	[ search(request)(response) {
+		file.filename = "templates/search.html";
+		file.format = "text";
+		readFile@File(file)(template);
+
+		if(request.query != null) {
+			template.content = "<h3>Results for \"" + request.query + "\"</h3>"
+		};
+
+		template@Format(template)(response);
+		format = "html"
+	} ] { nullProcess }
+
+	[ listPackages()(response) {
+		list@Client()(packages);
+		file.filename = "templates/listPackages.html";
+		file.format = "text";
+		readFile@File(file)(template);
+
+		template.packages = "";
+		for(i = 0, i < #packages.package, i++) {
+			template.packages += "<tr>
+				<td>" + packages.package[i].name + "</td>
+				<td>" + packages.package[i].version + "</td>
+				<td>NA</td><td>NA</td></tr>"
+		};
+		template@Format(template)(response);
+		format = "html"
 	} ] { nullProcess }
 }

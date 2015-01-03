@@ -4,19 +4,20 @@ type WebSpecRequest : void {
 
 type WebPackageRequest : void {
 	.name : string
+	.version : string
 }
 
 interface WebGetInterface {
 	RequestResponse:
-		getSpec(WebSpecRequest)(undefined),
-		getPackage(WebPackageRequest)(undefined)
+		getSpec(WebSpecRequest)(raw),
+		getPackage(WebPackageRequest)(raw)
 }
 
 outputPort WebGet {
 	Protocol: http {
-		.method = "GET";
 		.osc.getSpec.alias = "%{name}.jpmspec";
-		.osc.getPackage.alias = "%{name}.zip"
+		.osc.getPackage.alias = "%{name}-%{version}.zip";
+		.format = "binary"
 	}
 	Interfaces: WebGetInterface
 }

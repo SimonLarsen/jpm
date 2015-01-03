@@ -1,7 +1,7 @@
 interface WebInterface {
 	RequestResponse:
 		default(DefaultOperationHttpRequest)(undefined),
-		listPackages(void)(undefined),
-		installPackages(undefined)(undefined)
+		installPackages(undefined)(undefined),
+		search(undefined)(undefined),
+		listPackages(void)(undefined)
 }
-

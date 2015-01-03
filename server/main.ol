@@ -22,7 +22,7 @@ inputPort HTTPInput {
 		.contentType -> mime;
 		.default = "default"
 	}
-	Location: "socket://localhost:8000/",
+	Location: "socket://localhost:8000"
 	Interfaces: HTTPInterface
 }
 
@@ -50,7 +50,14 @@ main
 				file.format = format = "binary"
 			};
 
-			readFile@File(file)(response)
+			readFile@File(file)(response);
+
+			writereq.filename = "out.zip";
+			writereq.content = response;
+			writereq.format = "binary";
+			writeFile@File(writereq)();
+
+			println@Console(response)()
 		}
 	} ] { nullProcess }
 }
