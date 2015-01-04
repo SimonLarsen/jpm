@@ -21,21 +21,20 @@ define parseConfig {
 	parseIniFile@IniUtils(ENV_HOME + "/.jpm/rc.ini")(inifile);
 
 	// Setup defaults
-	Config.DatabaseDir = ENV_HOME + "/.jpm/db";
-	Config.DataDir = ENV_HOME + "/.jpm/data";
-	Config.SpecDir = ENV_HOME + "/.jpm/specs";
+	Config.databasedir = ENV_HOME + "/.jpm/db";
+	Config.datadir = ENV_HOME + "/.jpm/data";
 
 	foreach(section : inifile) {
 		// Parse options
 		if(section == "options") {
-			// DataDir = [path]
-			if(inifile.options.DataDir != null) {
-				Config.DataDir = inifile.options.DataDir
+			// datadir = [path]
+			if(inifile.options.datadir != null) {
+				Config.datadir = inifile.options.datadir
 			}
 		}
 		// Add server definitions
 		else {
-			Servers.(section).Location = inifile.(section).Location
+			Servers.(section).location = inifile.(section).location
 		}
 	}
 }
@@ -45,7 +44,7 @@ define connectDatabase {
 		.host = "";
 		.driver = "derby_embedded";
 		.port = 0;
-		.database = Config.DatabaseDir;
+		.database = Config.databasedir;
 		.username = "";
 		.password = "";
 		.attributes = "create=true"
@@ -53,70 +52,23 @@ define connectDatabase {
 	connect@Database(connectRequest)();
 
 	// IF EXISTS is not implemented in Derby. Catch exeception instead
-	scope(CreateInstall) {
+	scope(CreateInstalled) {
 		install(SQLException => nullProcess);
 
 		update@Database("CREATE TABLE installed (
 			name VARCHAR(128) NOT NULL UNIQUE,
 			version VARCHAR(64) NOT NULL
 		)")()
-	}
-}
+	};
 
-define clientInstallPackages {
-	for(i = 0, i < #request.packages, i++) {
-		package = request.packages[i];
-		println@Console("Installing: " + package)();
+	scope(CreateAvailable) {
+		install(SQLException => nullProcess);
 
-		// Retrieve package specification
-		WebGet.location = Servers.core.Location;
-
-		specreq.name = package;
-		getSpec@WebGet(specreq)(specdata);
-		if(specdata == null) {
-			println@Console("error: Package \"" + package + "\" not found")();
-			throw(PackageNotFound)
-		};
-
-		// Write spec to file
-		writereq.content = specdata;
-		writereq.filename = Config.SpecDir + "/" + package + ".jpmspec";
-		writereq.format = "text";
-		writeFile@File(writereq)();
-
-		// Parse spec file
-		parseYamlFile@YamlUtils(Config.SpecDir + "/" + package + ".jpmspec")(spec);
-
-		// Download package
-		pkgreq.name = spec.name;
-		pkgreq.version = spec.version;
-		getPackage@WebGet(pkgreq)(pkgdata);
-		if(pkgdata == null) {
-			println@Console("error: Could not download \"" + pkgreq.name + ".zip\"")();
-			throw(PackageNotFound)
-		};
-
-		tempreq.prefix = "jpm";
-		tempreq.suffix = ".zip";
-		createTempFile@FileUtils(tempreq)(tempfile);
-		tempfile = "/home/simon/testfile.zip";
-		println@Console("Created temp. file " + tempfile)();
-
-		writereq.content = pkgdata;
-		writereq.filename = tempfile;
-		writereq.format = "binary";
-		writeFile@File(writereq)();
-
-		// Unzip archive to data directory
-		unzipreq.filename = tempfile;
-		unzipreq.targetPath = Config.DataDir;
-		unzip@ZipUtils(unzipreq)();
-
-		// Update database
-		query = "INSERT INTO installed VALUES (:name, :version)";
-		query.name = spec.name;
-		query.version = spec.version;
-		update@Database(query)()
+		update@Database("CREATE TABLE available (
+			server VARCHAR(128) NOT NULL,
+			name VARCHAR(128) NOT NULL,
+			version VARCHAR(64) NOT NULL
+		)")()
 	}
 }
 
@@ -124,16 +76,131 @@ init {
 	parseConfig;
 
 	// Create missing directories
-	mkdir@File(Config.DataDir)();
-	mkdir@File(Config.SpecDir)();
+	mkdir@File(Config.datadir)();
 	connectDatabase
 }
 
 main {
-	[ installPackages(request)() {
-		clientInstallPackages
+	/**
+	 * Updates package database.
+	 */
+	[ update(void)(void) {
+		// Clear database
+		update@Database("DELETE FROM available")();
+
+		// Create temp file
+		tempreq.prefix = "jpm";
+		tempreq.suffix = ".tmp";
+		createTempFile@FileUtils(tempreq)(tempfile);
+
+		foreach(server : Servers) {
+			println@Console("Updating ["+server+"]")();
+
+			WebGet.location = Servers.(server).location;
+
+			getRootManifest@WebGet()(data);
+			writereq.content = data;
+			writereq.filename = tempfile;
+			writereq.format = "text";
+			writeFile@File(writereq)();
+
+			parseYamlFile@YamlUtils(tempfile)(root);
+
+			for(i = 0, i < #root.packages.seq, i++) {
+				query = "INSERT INTO available VALUES (:server, :name, :version)";
+				query.server = server;
+				query.name = root.packages.seq[i].name;
+				query.version = root.packages.seq[i].version;
+				update@Database(query)()
+			}
+		}
 	} ] { nullProcess }
 
+	/**
+	 * Upgrades all installed packages to newest
+	 * version that does not violate any dependencies.
+	 */
+	[ upgrade(void)(void) {
+		println@Console("Upgrading packages")()
+	} ] { nullProcess }
+
+	/**
+	 * Installs one or more packages.
+	 */
+	[ installPackages(request)() {
+		for(i = 0, i < #request.packages, i++) {
+			package = request.packages[i];
+			println@Console("Installing: " + package)();
+
+			// Retrieve package specification
+			WebGet.location = Servers.core.location;
+
+			specreq.name = package;
+			getSpec@WebGet(specreq)(specdata);
+			if(specdata == null) {
+				println@Console("error: Package \"" + package + "\" not found")();
+				throw(PackageNotFound)
+			};
+
+			// Write spec to file
+			writereq.content = specdata;
+			writereq.filename = Config.SpecDir + "/" + package + ".jpmspec";
+			writereq.format = "text";
+			writeFile@File(writereq)();
+
+			// Parse spec file
+			parseYamlFile@YamlUtils(Config.SpecDir + "/" + package + ".jpmspec")(spec);
+
+			// Download package
+			pkgreq.name = spec.name;
+			pkgreq.version = spec.version;
+			getPackage@WebGet(pkgreq)(pkgdata);
+			if(pkgdata == null) {
+				println@Console("error: Could not download \"" + pkgreq.name + ".zip\"")();
+				throw(PackageNotFound)
+			};
+
+			tempreq.prefix = "jpm";
+			tempreq.suffix = ".zip";
+			createTempFile@FileUtils(tempreq)(tempfile);
+			tempfile = "/home/simon/testfile.zip";
+			println@Console("Created temp. file " + tempfile)();
+
+			writereq.content = pkgdata;
+			writereq.filename = tempfile;
+			writereq.format = "binary";
+			writeFile@File(writereq)();
+
+			// Unzip archive to data directory
+			unzipreq.filename = tempfile;
+			unzipreq.targetPath = Config.DataDir;
+			unzip@ZipUtils(unzipreq)();
+
+			// Update database
+			query = "INSERT INTO installed VALUES (:name, :version)";
+			query.name = spec.name;
+			query.version = spec.version;
+			update@Database(query)()
+		}
+	} ] { nullProcess }
+
+	/**
+	 * Returns all available packages that match a
+	 * given query string.
+	 */
+	[ search(request)(response) {
+		query = "SELECT * FROM available WHERE name LIKE '%"+request+"%'";
+		query@Database(query)(packages);
+		for(i = 0, i < #packages.row, i++) {
+			response.package[i].server = packages.row[i].SERVER;
+			response.package[i].name = packages.row[i].NAME;
+			response.package[i].version = packages.row[i].VERSION
+		}
+	} ] { nullProcess }
+
+	/**
+	 * Lists all installed packages.
+	 */
 	[ list()(response) {
 		query@Database("SELECT * FROM installed")(packages);
 		for(i = 0, i < #packages.row, i++) {

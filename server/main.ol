@@ -50,7 +50,7 @@ main
 				file.format = format = "binary"
 			};
 
-			readFile@File(file)(response);
+			readFile@File(file)(response)
 		}
 	} ] { nullProcess }
 }

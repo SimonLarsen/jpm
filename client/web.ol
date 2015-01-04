@@ -90,15 +90,28 @@ main {
 	} ] { nullProcess }
 
 	[ search(request)(response) {
-		file.filename = "templates/search.html";
-		file.format = "text";
-		readFile@File(file)(template);
+		if(request.query == null) {
+			file.filename = "templates/search.html";
+			file.format = "text";
+			readFile@File(file)(response)
+		}
+		else {
+			file.filename = "templates/searchResults.html";
+			file.format = "text";
+			readFile@File(file)(template);
 
-		if(request.query != null) {
-			template.content = "<h3>Results for \"" + request.query + "\"</h3>"
+			template.query = request.query;
+
+			search@Client(request.query)(packages);
+			for(i = 0, i < #packages.package, i++) {
+				template.rows +=
+				"<tr><td>"	+ packages.package[i].server + "</td>
+				<td>"		+ packages.package[i].name + "</td>
+				<td>"		+ packages.package[i].version + "</td></tr>"
+			};
+
+			template@Format(template)(response)
 		};
-
-		template@Format(template)(response);
 		format = "html"
 	} ] { nullProcess }
 

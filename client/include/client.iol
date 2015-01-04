@@ -11,6 +11,7 @@ type PackageListResponse : void {
 
 type SearchResponse : void {
 	.package[0,*] : void {
+		.server : string
 		.name : string
 		.version : string
 	}
@@ -18,7 +19,9 @@ type SearchResponse : void {
 
 interface ClientInterface {
 	RequestResponse:
+		update(void)(void),
+		upgrade(void)(void),
 		installPackages(InstallPackagesRequest)(void),
-		list(void)(PackageListResponse),
-		search(string)(SearchResponse)
+		search(string)(SearchResponse),
+		list(void)(PackageListResponse)
 }

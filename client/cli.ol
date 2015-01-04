@@ -22,6 +22,14 @@ define cmd_help {
 	println@Console(HELP_TEXT)()
 }
 
+define cmd_update {
+	update@Client()()
+}
+
+define cmd_upgrade {
+	upgrade@Client()()
+}
+
 define cmd_install {
 	for(i = 1, i < #args, i++) {
 		request.packages[i-1] = args[i]
@@ -29,36 +37,38 @@ define cmd_install {
 	installPackages@Client(request)()
 }
 
+define cmd_search {
+	search@Client(args[1])(res);
+	for(i = 0, i < #res.package, i++) {
+		println@Console(res.package[i].server + "/" + res.package[i].name + "\t" + res.package[i].version)()
+	}
+}
+
 define cmd_list {
 	list@Client()(res);
 	for(i = 0, i < #res.package, i++) {
 		println@Console(res.package[i].name + "\t" + res.package[i].version)()
-	};
-
-	undef(res)
-}
-
-define cmd_search {
-	search@Client(args[1])(res);
-	for(i = 0, i < #res.package, i++) {
-		println@Console(res.package[i].name + "\t" + res.package[i].version)()
-	};
-
-	undef(res)
+	}
 }
 
 main {
 	if(args[0] == "-h" || args[0] == "--help") {
 		cmd_help
 	}
+	else if(args[0] == "update") {
+		cmd_update
+	}
+	else if(args[0] == "upgrade") {
+		cmd_upgrade
+	}
 	else if(args[0] == "install") {
 		cmd_install
 	}
-	else if(args[0] == "list") {
-		cmd_list
-	}
 	else if(args[0] == "search") {
 		cmd_search
+	}
+	else if(args[0] == "list") {
+		cmd_list
 	}
 	else {
 		println@Console("error: Unknown command \"" + args[0] + "\"")()
