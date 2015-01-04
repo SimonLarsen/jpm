@@ -51,13 +51,6 @@ main
 			};
 
 			readFile@File(file)(response);
-
-			writereq.filename = "out.zip";
-			writereq.content = response;
-			writereq.format = "binary";
-			writeFile@File(writereq)();
-
-			println@Console(response)()
 		}
 	} ] { nullProcess }
 }
