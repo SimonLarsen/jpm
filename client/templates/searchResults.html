@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>jpm | Search</title>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+		<link rel="stylesheet" href="css/style.css">
+	</head>
+	<body>
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<h1>jpm</h1>
+
+					<ul class="list-inline">
+						<li>
+							<a href="installPackages" class="btn btn-primary" role="button">Install packages</a>
+						</li>
+						<li>
+							<a href="search" class="btn btn-primary" role="button">Search</a>
+						</li>
+						<li>
+							<a href="listPackages" class="btn btn-primary" role="button">List installed packages</a>
+						</li>
+					</ul>
+
+					<h2>Search</h2>
+
+					<form action="search" method="GET">
+						<div class="form-group">
+							<label for="query">Enter search terms</label>
+							<input type="text" class="form-control" id="query" name="query" placeholder="Package search terms">
+						</div>
+						<button type="submit" class="btn btn-default">Search</button>
+					</form>
+
+					<h3>Results for "${query}"</h3>
+
+					<table class="table table-striped">
+						<thead>
+							<tr>
+								<th>Server</th><th>Name</th><th>Version</th>
+							</tr>
+						</thead>
+						<tbody>
+							${rows}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
