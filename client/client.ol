@@ -4,6 +4,7 @@ include "database.iol"
 include "environment.iol"
 include "ini_utils.iol"
 include "yaml_utils.iol"
+include "string_utils.iol"
 include "webget.iol"
 include "zip_utils.iol"
 include "file.iol"
@@ -94,24 +95,30 @@ main {
 		createTempFile@FileUtils(tempreq)(tempfile);
 
 		foreach(server : Servers) {
-			println@Console("Updating ["+server+"]")();
+			scope(UpdateServer) {
+				install(IOException =>
+					println@Console("error: Could not connect to ["+server+"]")()
+				);
 
-			WebGet.location = Servers.(server).location;
+				println@Console("Updating ["+server+"]")();
 
-			getRootManifest@WebGet()(data);
-			writereq.content = data;
-			writereq.filename = tempfile;
-			writereq.format = "text";
-			writeFile@File(writereq)();
+				WebGet.location = Servers.(server).location;
 
-			parseYamlFile@YamlUtils(tempfile)(root);
+				getRootManifest@WebGet()(data);
+				writereq.content = data;
+				writereq.filename = tempfile;
+				writereq.format = "text";
+				writeFile@File(writereq)();
 
-			for(i = 0, i < #root.packages.seq, i++) {
-				query = "INSERT INTO available VALUES (:server, :name, :version)";
-				query.server = server;
-				query.name = root.packages.seq[i].name;
-				query.version = root.packages.seq[i].version;
-				update@Database(query)()
+				parseYamlFile@YamlUtils(tempfile)(root);
+
+				for(i = 0, i < #root.packages.seq, i++) {
+					query = "INSERT INTO available VALUES (:server, :name, :version)";
+					query.server = server;
+					query.name = root.packages.seq[i].name;
+					query.version = root.packages.seq[i].version;
+					update@Database(query)()
+				}
 			}
 		}
 	} ] { nullProcess }
@@ -189,7 +196,12 @@ main {
 	 * given query string.
 	 */
 	[ search(request)(response) {
-		query = "SELECT * FROM available WHERE name LIKE '%"+request+"%'";
+		replacereq = request;
+		replacereq.regex = "\\*";
+		replacereq.replacement = "\\%";
+		replaceAll@StringUtils(replacereq)(query);
+
+		query = "SELECT * FROM available WHERE name LIKE '%" + query + "%'";
 		query@Database(query)(packages);
 		for(i = 0, i < #packages.row, i++) {
 			response.package[i].server = packages.row[i].SERVER;
