@@ -3,8 +3,8 @@ body {
 }
 
 #heading {
-	background-color: #000000;
-	background-color: #203e70;
+	background-color: rgb(23, 53, 104);
+	border-bottom: 3px solid rgb(89, 122, 179);
 }
 
 div .wrapper {
@@ -25,7 +25,6 @@ div #menu {
 div #menu a {
 	color: #ffffff;
 	text-decoration: none;
-	/* font-weight: bold; */
 }
 
 div #menu a:hover {
@@ -36,11 +35,16 @@ div #menu li {
 	margin-right: 13px;
 }
 
-div .search-box {
+div #search-box {
 	float: right;
 	display: inline-block;
 	line-height: 48px;
 	vertical-align: middle;
+}
+
+div #search-input {
+	width: 180px;
+	height: 30px;
 }
 
 div #content {
