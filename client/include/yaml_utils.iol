@@ -1,6 +1,7 @@
 interface YamlUtilsInterface {
 	RequestResponse:
-		parseYamlFile(string)(undefined)
+		parse(string)(undefined) throws FileNotFound MultipleDocuments,
+		parseAll(string)(undefined) throws FileNotFound
 }
 
 outputPort YamlUtils {

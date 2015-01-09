@@ -1,0 +1,50 @@
+body {
+	font-family: "Helvetica Neue", "Helvetica", "Arial", sans-serif
+}
+
+#heading {
+	background-color: #000000;
+	background-color: #203e70;
+}
+
+div .wrapper {
+	max-width: 900px;
+	margin-left: auto;
+	margin-right: auto;
+}
+div #menu {
+	display: inline-block;
+	color: #ffffff;
+	height: 48px;
+	line-height: 48px;
+	vertical-align: middle;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+div #menu a {
+	color: #ffffff;
+	text-decoration: none;
+	/* font-weight: bold; */
+}
+
+div #menu a:hover {
+	color: #adc1db;
+}
+
+div #menu li {
+	margin-right: 13px;
+}
+
+div .search-box {
+	float: right;
+	display: inline-block;
+	line-height: 48px;
+	vertical-align: middle;
+}
+
+div #content {
+	max-width: 900px;
+	margin-left: auto;
+	margin-right: auto;
+}

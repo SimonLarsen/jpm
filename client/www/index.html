@@ -1,33 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>jpm</title>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
 		<link rel="stylesheet" href="css/style.css">
 	</head>
 	<body>
-		<div class="container">
-			<div class="row">
-				<div class="col-md-12">
-					<h1>jpm</h1>
-
+		<div id="heading">
+			<div class="wrapper">
+				<div id="menu">
 					<ul class="list-inline">
 						<li>
-							<a href="installPackages" class="btn btn-primary" role="button">Install packages</a>
+							<a href="/"><img src="/img/icon.png" alt="jpm icon"></a>
 						</li>
 						<li>
-							<a href="search" class="btn btn-primary" role="button">Search</a>
+							<a href="installPackages">Install packages</a>
 						</li>
 						<li>
-							<a href="listPackages" class="btn btn-primary" role="button">List installed packages</a>
+							<a href="update">Update database</a>
+						</li>
+						<li>
+							<a href="list">Installed packages</a>
 						</li>
 					</ul>
-
-					<h2>Index</h2>
-
-					<p>Select an option from the menu above.</p>
 				</div>
+				<div class="search-box">
+					<form action="search" method="GET">
+						<div class="form-group form-inline">
+							<label class="sr-only" for="searchInput">Search</label>
+							<input type="search" class="form-control" id="searchInput" name="query" placeholder="Search packages">
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<div id="content">
+			<div class="wrapper">
+				<h2>jpm</h2>
+
+				<p>Welcome to jpm!</p>
+				
+				<p>Select an option from the menu above.</p>
 			</div>
 		</div>
 	</body>

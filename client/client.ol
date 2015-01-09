@@ -110,13 +110,13 @@ main {
 				writereq.format = "text";
 				writeFile@File(writereq)();
 
-				parseYamlFile@YamlUtils(tempfile)(root);
+				parse@YamlUtils(tempfile)(root);
 
 				for(i = 0, i < #root.packages.seq, i++) {
 					query = "INSERT INTO available VALUES (:server, :name, :version)";
 					query.server = server;
-					query.name = root.packages.seq[i].name;
-					query.version = root.packages.seq[i].version;
+					query.name = root.packages.list[i].name;
+					query.version = root.packages.list[i].version;
 					update@Database(query)()
 				}
 			}
@@ -156,7 +156,7 @@ main {
 			writeFile@File(writereq)();
 
 			// Parse spec file
-			parseYamlFile@YamlUtils(Config.SpecDir + "/" + package + ".jpmspec")(spec);
+			parse@YamlUtils(Config.SpecDir + "/" + package + ".jpmspec")(spec);
 
 			// Download package
 			pkgreq.name = spec.name;

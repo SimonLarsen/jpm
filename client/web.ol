@@ -3,7 +3,7 @@ include "file.iol"
 include "protocols/http.iol"
 include "string_utils.iol"
 include "format.iol"
-include "web_interface.iol"
+include "web.iol"
 include "client.iol"
 
 constants {
@@ -105,8 +105,8 @@ main {
 			search@Client(request.query)(packages);
 			for(i = 0, i < #packages.package, i++) {
 				template.rows +=
-				"<tr><td>"	+ packages.package[i].server + "</td>
-				<td>"		+ packages.package[i].name + "</td>
+				"<tr><td>"	+ packages.package[i].name + "</td>
+				<td>"		+ packages.package[i].server + "</td>
 				<td>"		+ packages.package[i].version + "</td></tr>"
 			};
 
@@ -115,9 +115,9 @@ main {
 		format = "html"
 	} ] { nullProcess }
 
-	[ listPackages()(response) {
+	[ list()(response) {
 		list@Client()(packages);
-		file.filename = "templates/listPackages.html";
+		file.filename = "templates/list.html";
 		file.format = "text";
 		readFile@File(file)(template);
 
