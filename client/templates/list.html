@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>jpm | Installed packages</title>
+		<title>Installed packages - jpm</title>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
 		<link rel="stylesheet" href="css/style.css">
 	</head>
@@ -38,6 +38,16 @@
 		<div id="content">
 			<div class="wrapper">
 				<h2>Installed packages</h2>
+
+				<form action="list" method="GET">
+					<div class="form-group">
+						<label for="query">Enter search terms</label>
+						<input type="search" class="form-control" id="query" name="query" placeholder="Package search terms">
+					</div>
+					<button type="submit" class="btn btn-default">Search</button>
+				</form>
+
+				<h3>Results for "${query}"</h3>
 
 				<table class="table table-striped">
 					<thead>

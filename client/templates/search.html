@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>jpm | Search</title>
+		<title>Search - jpm</title>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
 		<link rel="stylesheet" href="css/style.css">
 	</head>
@@ -25,8 +25,8 @@
 					</ul>
 				</div>
 				<div class="search-box">
-					<form action="search" method="GET">
-						<div class="form-group form-inline">
+					<form action="search" method="GET" class="form-inline">
+						<div class="form-group">
 							<label class="sr-only" for="searchInput">Search</label>
 							<input type="search" class="form-control" id="searchInput" name="query" placeholder="Search packages">
 						</div>
@@ -42,10 +42,23 @@
 				<form action="search" method="GET">
 					<div class="form-group">
 						<label for="query">Enter search terms</label>
-						<input type="text" class="form-control" id="query" name="query" placeholder="Package search terms">
+						<input type="search" class="form-control" id="query" name="query" placeholder="Package search terms">
 					</div>
 					<button type="submit" class="btn btn-default">Search</button>
 				</form>
+
+				<h3>Results for "${query}"</h3>
+
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th>Name</th><th>Server</th><th>Version</th>
+						</tr>
+					</thead>
+					<tbody>
+						${rows}
+					</tbody>
+				</table>
 			</div>
 		</div>
 	</body>

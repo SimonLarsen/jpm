@@ -68,6 +68,32 @@ main {
 		}
 	} ] { nullProcess }
 
+	[ update()(response) {
+		update@Client()(output);
+
+		file.filename = "templates/update.html";
+		file.format = "text";
+		readFile@File(file)(template);
+
+		foreach(server : output) {
+			if(output.(server).status == true) {
+				template.rows += "<tr>
+				<td>" + server + "</td>
+				<td>Success</td>
+				<td>" + output.(server).count + "</td></tr>"
+			} else {
+				template.rows += "<tr class=\"danger\">
+				<td>" + server + "</td>
+				<td>Failed</td>
+				<td>" + output.(server).count + "</td></tr>"
+			}
+		};
+		template.rows += "</tr>";
+
+		template@Format(template)(response);
+		format = "html"
+	} ] { nullProcess }
+
 	[ installPackages(request)(response) {
 		if(request.packages == null) {
 			file.filename = "templates/installPackages.html";
@@ -90,44 +116,47 @@ main {
 	} ] { nullProcess }
 
 	[ search(request)(response) {
-		if(request.query == null) {
-			file.filename = "templates/search.html";
-			file.format = "text";
-			readFile@File(file)(response)
-		}
-		else {
-			file.filename = "templates/searchResults.html";
-			file.format = "text";
-			readFile@File(file)(template);
-
-			template.query = request.query;
-
-			search@Client(request.query)(packages);
-			for(i = 0, i < #packages.package, i++) {
-				template.rows +=
-				"<tr><td>"	+ packages.package[i].name + "</td>
-				<td>"		+ packages.package[i].server + "</td>
-				<td>"		+ packages.package[i].version + "</td></tr>"
-			};
-
-			template@Format(template)(response)
+		if(request.query == null || request.query == "") {
+			request.query = "*"
 		};
+
+		file.filename = "templates/search.html";
+		file.format = "text";
+		readFile@File(file)(template);
+
+		template.query = request.query;
+
+		search@Client(request.query)(packages);
+		for(i = 0, i < #packages.package, i++) {
+			template.rows +=
+			"<tr><td>"	+ packages.package[i].name + "</td>
+			<td>"		+ packages.package[i].server + "</td>
+			<td>"		+ packages.package[i].version + "</td></tr>"
+		};
+
+		template@Format(template)(response);
 		format = "html"
 	} ] { nullProcess }
 
-	[ list()(response) {
-		list@Client()(packages);
+	[ list(request)(response) {
+		if(request.query == null || request.query == "") {
+			request.query = "*"
+		};
+
 		file.filename = "templates/list.html";
 		file.format = "text";
 		readFile@File(file)(template);
 
-		template.packages = "";
+		template.query = request.query;
+
+		list@Client(request.query)(packages);
 		for(i = 0, i < #packages.package, i++) {
 			template.packages += "<tr>
 				<td>" + packages.package[i].name + "</td>
 				<td>" + packages.package[i].version + "</td>
 				<td>NA</td><td>NA</td></tr>"
 		};
+
 		template@Format(template)(response);
 		format = "html"
 	} ] { nullProcess }

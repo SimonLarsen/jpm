@@ -85,7 +85,7 @@ main {
 	/**
 	 * Updates package database.
 	 */
-	[ update(void)(void) {
+	[ update()(response) {
 		// Clear database
 		update@Database("DELETE FROM available")();
 
@@ -95,9 +95,14 @@ main {
 		createTempFile@FileUtils(tempreq)(tempfile);
 
 		foreach(server : Servers) {
+			response.(server).status = false;
+
 			scope(UpdateServer) {
 				install(IOException =>
 					println@Console("error: Could not connect to ["+server+"]")()
+				);
+				install(TypeMismatch =>
+					println@Console("error: Could not retrieve files from ["+server+"]")()
 				);
 
 				println@Console("Updating ["+server+"]")();
@@ -112,13 +117,16 @@ main {
 
 				parse@YamlUtils(tempfile)(root);
 
-				for(i = 0, i < #root.packages.seq, i++) {
+				for(i = 0, i < #root.packages.list, i++) {
 					query = "INSERT INTO available VALUES (:server, :name, :version)";
 					query.server = server;
 					query.name = root.packages.list[i].name;
 					query.version = root.packages.list[i].version;
 					update@Database(query)()
-				}
+				};
+
+				response.(server).status = true;
+				response.(server).count = #root.packages.list
 			}
 		}
 	} ] { nullProcess }
@@ -213,8 +221,13 @@ main {
 	/**
 	 * Lists all installed packages.
 	 */
-	[ list()(response) {
-		query@Database("SELECT * FROM installed")(packages);
+	[ list(request)(response) {
+		replacereq = request;
+		replacereq.regex = "\\*";
+		replacereq.replacement = "\\%";
+		replaceAll@StringUtils(replacereq)(query);
+
+		query@Database("SELECT * FROM installed WHERE name LIKE '%" + query + "%'")(packages);
 		for(i = 0, i < #packages.row, i++) {
 			response.package[i].name = packages.row[i].NAME;
 			response.package[i].version = packages.row[i].VERSION

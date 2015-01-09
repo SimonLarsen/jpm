@@ -19,9 +19,9 @@ type SearchResponse : void {
 
 interface ClientInterface {
 	RequestResponse:
-		update(void)(void),
+		update(void)(undefined),
 		upgrade(void)(void),
 		installPackages(InstallPackagesRequest)(void),
 		search(string)(SearchResponse),
-		list(void)(PackageListResponse)
+		list(string)(PackageListResponse)
 }
