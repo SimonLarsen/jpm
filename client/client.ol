@@ -159,7 +159,7 @@ main {
 					query = "INSERT INTO packages VALUES (:name, :server, :version)";
 					query.name = root.packages.list[i].name;
 					query.server = server;
-					query.version = root.packages.list[i].version;
+					query.version = root.packages.list[i].versions[#root.packages.list[i].versions-1];
 					update@Database(query)()
 				};
 
