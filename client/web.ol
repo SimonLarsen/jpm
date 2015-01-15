@@ -153,8 +153,8 @@ main {
 		for(i = 0, i < #packages.package, i++) {
 			template.packages += "<tr>
 				<td>" + packages.package[i].name + "</td>
-				<td>" + packages.package[i].version + "</td>
-				<td>NA</td><td>NA</td></tr>"
+				<td>" + packages.package[i].server + "</td>
+				<td>" + packages.package[i].version + "</td></tr>"
 		};
 
 		template@Format(template)(response);

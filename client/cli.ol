@@ -53,7 +53,7 @@ define cmd_list {
 	};
 	list@Client(args[1])(res);
 	for(i = 0, i < #res.package, i++) {
-		println@Console(res.package[i].name + "\t" + res.package[i].version)()
+		println@Console(res.package[i].server + "/" + res.package[i].name + "\t" + res.package[i].version)()
 	}
 }
 

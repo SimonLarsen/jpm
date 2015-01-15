@@ -22,8 +22,8 @@ define parseConfig {
 	parseIniFile@IniUtils(ENV_HOME + "/.jpm/rc.ini")(inifile);
 
 	// Setup defaults
-	Config.databasedir = ENV_HOME + "/.jpm/db";
-	Config.datadir = ENV_HOME + "/.jpm/data";
+	Config.databasedir = ENV_HOME + "/.jpm/db/";
+	Config.datadir = ENV_HOME + "/.jpm/data/";
 
 	foreach(section : inifile) {
 		// Parse options
@@ -40,35 +40,72 @@ define parseConfig {
 	}
 }
 
-define connectDatabase {
+define connectDatabaseSync {
 	with(connectRequest) {
 		.host = "";
 		.driver = "derby_embedded";
 		.port = 0;
-		.database = Config.databasedir;
+		.database = Config.databasedir + "sync";
 		.username = "";
 		.password = "";
 		.attributes = "create=true"
 	};
-	connect@Database(connectRequest)();
+	connect@Database(connectRequest)()
+}
 
-	// IF EXISTS is not implemented in Derby. Catch exeception instead
+define connectDatabaseLocal {
+	with(connectRequest) {
+		.host = "";
+		.driver = "derby_embedded";
+		.port = 0;
+		.database = Config.databasedir + "local";
+		.username = "";
+		.password = "";
+		.attributes = "create=true"
+	};
+	connect@Database(connectRequest)()
+}
+
+define setupDatabase {
+	connectDatabaseSync;
+
 	scope(CreateInstalled) {
 		install(SQLException => nullProcess);
 
-		update@Database("CREATE TABLE installed (
+		update@Database("CREATE TABLE packages (
 			name VARCHAR(128) NOT NULL UNIQUE,
+			server VARCHAR(128) NOT NULL,
 			version VARCHAR(64) NOT NULL
 		)")()
 	};
 
+	scope(CreateDepends) {
+		install(SQLException => nullProcess);
+
+		update@Database("CREATE TABLE depends(
+			name VARCHAR(128) NOT NULL,
+			depends VARCHAR(128) NOT NULL
+		)")()
+	};
+
+	connectDatabaseLocal;
+
 	scope(CreateAvailable) {
 		install(SQLException => nullProcess);
 
-		update@Database("CREATE TABLE available (
-			server VARCHAR(128) NOT NULL,
+		update@Database("CREATE TABLE packages (
 			name VARCHAR(128) NOT NULL,
+			server VARCHAR(128) NOT NULL,
 			version VARCHAR(64) NOT NULL
+		)")()
+	};
+
+	scope(CreateDepends) {
+		install(SQLException => nullProcess);
+
+		update@Database("CREATE TABLE depends(
+			name VARCHAR(128) NOT NULL,
+			depends VARCHAR(128) NOT NULL
 		)")()
 	}
 }
@@ -78,7 +115,7 @@ init {
 
 	// Create missing directories
 	mkdir@File(Config.datadir)();
-	connectDatabase
+	setupDatabase
 }
 
 main {
@@ -87,7 +124,8 @@ main {
 	 */
 	[ update()(response) {
 		// Clear database
-		update@Database("DELETE FROM available")();
+		connectDatabaseSync;
+		update@Database("DELETE FROM packages")();
 
 		// Create temp file
 		tempreq.prefix = "jpm";
@@ -99,10 +137,10 @@ main {
 
 			scope(UpdateServer) {
 				install(IOException =>
-					println@Console("error: Could not connect to ["+server+"]")()
+					println@Console("Could not connect to ["+server+"]")()
 				);
 				install(TypeMismatch =>
-					println@Console("error: Could not retrieve files from ["+server+"]")()
+					println@Console("Could not retrieve files from ["+server+"]")()
 				);
 
 				println@Console("Updating ["+server+"]")();
@@ -118,9 +156,9 @@ main {
 				parse@YamlUtils(tempfile)(root);
 
 				for(i = 0, i < #root.packages.list, i++) {
-					query = "INSERT INTO available VALUES (:server, :name, :version)";
-					query.server = server;
+					query = "INSERT INTO packages VALUES (:name, :server, :version)";
 					query.name = root.packages.list[i].name;
+					query.server = server;
 					query.version = root.packages.list[i].version;
 					update@Database(query)()
 				};
@@ -142,44 +180,45 @@ main {
 	/**
 	 * Installs one or more packages.
 	 */
-	[ installPackages(request)() {
+	[ installPackages(request)(response) {
+		// Add requested packages
+		connectDatabaseSync;
 		for(i = 0, i < #request.packages, i++) {
-			package = request.packages[i];
-			println@Console("Installing: " + package)();
-
-			// Retrieve package specification
-			WebGet.location = Servers.core.location;
-
-			specreq.name = package;
-			getSpec@WebGet(specreq)(specdata);
-			if(specdata == null) {
-				println@Console("error: Package \"" + package + "\" not found")();
+			// Find most recent package
+			query@Database("SELECT * FROM packages WHERE name = '" + request.packages[i] + "'")(packages);
+			if(#packages.row == 0) {
 				throw(PackageNotFound)
 			};
 
-			// Write spec to file
-			writereq.content = specdata;
-			writereq.filename = Config.SpecDir + "/" + package + ".jpmspec";
-			writereq.format = "text";
-			writeFile@File(writereq)();
+			download[i].name = packages.row[0].NAME;
+			download[i].server = packages.row[0].SERVER;
+			download[i].version = packages.row[0].VERSION
+		};
 
-			// Parse spec file
-			parse@YamlUtils(Config.SpecDir + "/" + package + ".jpmspec")(spec);
+		// Resolve dependencies
+
+		// Install needed packages
+		connectDatabaseLocal;
+		for(i = 0, i < #download, i++) {
+			package = download[i].name;
+			println@Console("Installing: " + package)();
+			response.(package).status = false;
+
+			// Retrieve package specification
+			WebGet.location = Servers.(download[i].server).location;
 
 			// Download package
-			pkgreq.name = spec.name;
-			pkgreq.version = spec.version;
+			pkgreq.name = download[i].name;
+			pkgreq.version = download[i].version;
 			getPackage@WebGet(pkgreq)(pkgdata);
 			if(pkgdata == null) {
-				println@Console("error: Could not download \"" + pkgreq.name + ".zip\"")();
+				println@Console("Could not download \"" + pkgreq.name + ".zip\"")();
 				throw(PackageNotFound)
 			};
 
 			tempreq.prefix = "jpm";
 			tempreq.suffix = ".zip";
 			createTempFile@FileUtils(tempreq)(tempfile);
-			tempfile = "/home/simon/testfile.zip";
-			println@Console("Created temp. file " + tempfile)();
 
 			writereq.content = pkgdata;
 			writereq.filename = tempfile;
@@ -188,14 +227,23 @@ main {
 
 			// Unzip archive to data directory
 			unzipreq.filename = tempfile;
-			unzipreq.targetPath = Config.DataDir;
+			unzipreq.targetPath = Config.datadir;
 			unzip@ZipUtils(unzipreq)();
 
 			// Update database
-			query = "INSERT INTO installed VALUES (:name, :version)";
-			query.name = spec.name;
-			query.version = spec.version;
-			update@Database(query)()
+			query@Database("SELECT * FROM packages WHERE name = '" + package + "'")(packages);
+			if(#packages.row > 0) {
+				query = "DELETE FROM packages WHERE name = :name";
+				query.name = package;
+				update@Database(query)()
+			};
+			query.name = download[i].name;
+			query.server = download[i].server;
+			query.version = download[i].version;
+			query = "INSERT INTO packages VALUES (:name, :server, :version)";
+			update@Database(query)();
+
+			response.(package).status = true
 		}
 	} ] { nullProcess }
 
@@ -209,11 +257,12 @@ main {
 		replacereq.replacement = "\\%";
 		replaceAll@StringUtils(replacereq)(query);
 
-		query = "SELECT * FROM available WHERE name LIKE '%" + query + "%'";
+		connectDatabaseSync;
+		query = "SELECT * FROM packages WHERE name LIKE '%" + query + "%'";
 		query@Database(query)(packages);
 		for(i = 0, i < #packages.row, i++) {
-			response.package[i].server = packages.row[i].SERVER;
 			response.package[i].name = packages.row[i].NAME;
+			response.package[i].server = packages.row[i].SERVER;
 			response.package[i].version = packages.row[i].VERSION
 		}
 	} ] { nullProcess }
@@ -227,9 +276,11 @@ main {
 		replacereq.replacement = "\\%";
 		replaceAll@StringUtils(replacereq)(query);
 
-		query@Database("SELECT * FROM installed WHERE name LIKE '%" + query + "%'")(packages);
+		connectDatabaseLocal;
+		query@Database("SELECT * FROM packages WHERE name LIKE '%" + query + "%'")(packages);
 		for(i = 0, i < #packages.row, i++) {
 			response.package[i].name = packages.row[i].NAME;
+			response.package[i].server = packages.row[i].SERVER;
 			response.package[i].version = packages.row[i].VERSION
 		}
 	} ] { nullProcess }

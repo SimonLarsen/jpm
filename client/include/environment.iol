@@ -1,7 +1,7 @@
 interface EnvironmentInterface {
-RequestResponse: 
-	getVariable(string)(string) throws EnvironmentVariableNotFound,
-	getVariables(void)(undefined)
+	RequestResponse: 
+		getVariable(string)(string) throws EnvironmentVariableNotFound,
+		getVariables(void)(undefined)
 }
 
 outputPort Environment {
