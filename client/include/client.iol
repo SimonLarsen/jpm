@@ -22,7 +22,7 @@ interface ClientInterface {
 	RequestResponse:
 		update(void)(undefined),
 		upgrade(void)(void),
-		installPackages(InstallPackagesRequest)(undefined),
+		installPackages(InstallPackagesRequest)(void),
 		search(string)(SearchResponse),
 		list(string)(PackageListResponse)
 }

@@ -9,6 +9,7 @@ include "webget.iol"
 include "zip_utils.iol"
 include "file.iol"
 include "file_utils.iol"
+include "version_utils.iol"
 
 inputPort Input {
 	Location: "local"
@@ -71,7 +72,6 @@ define setupDatabase {
 
 	scope(CreateInstalled) {
 		install(SQLException => nullProcess);
-
 		update@Database("CREATE TABLE packages (
 			name VARCHAR(128) NOT NULL UNIQUE,
 			server VARCHAR(128) NOT NULL,
@@ -81,7 +81,6 @@ define setupDatabase {
 
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
-
 		update@Database("CREATE TABLE depends(
 			name VARCHAR(128) NOT NULL,
 			depends VARCHAR(128) NOT NULL
@@ -92,7 +91,6 @@ define setupDatabase {
 
 	scope(CreateAvailable) {
 		install(SQLException => nullProcess);
-
 		update@Database("CREATE TABLE packages (
 			name VARCHAR(128) NOT NULL,
 			server VARCHAR(128) NOT NULL,
@@ -102,7 +100,6 @@ define setupDatabase {
 
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
-
 		update@Database("CREATE TABLE depends(
 			name VARCHAR(128) NOT NULL,
 			depends VARCHAR(128) NOT NULL
@@ -159,7 +156,10 @@ main {
 					query = "INSERT INTO packages VALUES (:name, :server, :version)";
 					query.name = root.packages.list[i].name;
 					query.server = server;
-					query.version = root.packages.list[i].versions[#root.packages.list[i].versions-1];
+					query.version = root.packages.list[i].versions.list[
+						#root.packages.list[i].versions.list-1
+					];
+					println@Console(query.version)();
 					update@Database(query)()
 				};
 
@@ -171,7 +171,6 @@ main {
 
 	/**
 	 * Upgrades all installed packages to newest
-	 * version that does not violate any dependencies.
 	 */
 	[ upgrade(void)(void) {
 		println@Console("Upgrading packages")()
@@ -180,7 +179,7 @@ main {
 	/**
 	 * Installs one or more packages.
 	 */
-	[ installPackages(request)(response) {
+	[ installPackages(request)() {
 		// Add requested packages
 		connectDatabaseSync;
 		for(i = 0, i < #request.packages, i++) {
@@ -190,9 +189,20 @@ main {
 				throw(PackageNotFound)
 			};
 
-			download[i].name = packages.row[0].NAME;
-			download[i].server = packages.row[0].SERVER;
-			download[i].version = packages.row[0].VERSION
+			// Find newest version of package
+			mostRecent = 0;
+			for(j = 1, j < #packages.row, j++) {
+				comparereq.a = packages.row[j].VERSION;
+				comparereq.b = packages.row[mostRecent].VERSION;
+				compare@VersionUtils(comparereq)(comparison);
+				if(comparison > 0) {
+					mostRecent = j
+				}
+			};
+
+			download[i].name = packages.row[mostRecent].NAME;
+			download[i].server = packages.row[mostRecent].SERVER;
+			download[i].version = packages.row[mostRecent].VERSION
 		};
 
 		// Resolve dependencies
@@ -202,7 +212,6 @@ main {
 		for(i = 0, i < #download, i++) {
 			package = download[i].name;
 			println@Console("Installing: " + package)();
-			response.(package).status = false;
 
 			// Retrieve package specification
 			WebGet.location = Servers.(download[i].server).location;
@@ -241,9 +250,7 @@ main {
 			query.server = download[i].server;
 			query.version = download[i].version;
 			query = "INSERT INTO packages VALUES (:name, :server, :version)";
-			update@Database(query)();
-
-			response.(package).status = true
+			update@Database(query)()
 		}
 	} ] { nullProcess }
 
