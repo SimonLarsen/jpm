@@ -159,7 +159,6 @@ main {
 					query.version = root.packages.list[i].versions.list[
 						#root.packages.list[i].versions.list-1
 					];
-					println@Console(query.version)();
 					update@Database(query)()
 				};
 
@@ -184,7 +183,9 @@ main {
 		connectDatabaseSync;
 		for(i = 0, i < #request.packages, i++) {
 			// Find most recent package
-			query@Database("SELECT * FROM packages WHERE name = '" + request.packages[i] + "'")(packages);
+			query = "SELECT * FROM packages WHERE name = :name";
+			query.name = request.packages[i];
+			query@Database(query)(packages);
 			if(#packages.row == 0) {
 				throw(PackageNotFound)
 			};
@@ -210,8 +211,7 @@ main {
 		// Install needed packages
 		connectDatabaseLocal;
 		for(i = 0, i < #download, i++) {
-			package = download[i].name;
-			println@Console("Installing: " + package)();
+			println@Console("Installing: " + download[i].name)();
 
 			// Retrieve package specification
 			WebGet.location = Servers.(download[i].server).location;
@@ -240,16 +240,19 @@ main {
 			unzip@ZipUtils(unzipreq)();
 
 			// Update database
-			query@Database("SELECT * FROM packages WHERE name = '" + package + "'")(packages);
+			query = "SELECT * FROM packages WHERE name = :name";
+			query.name = download[i].name;
+			query@Database(query)(packages);
 			if(#packages.row > 0) {
 				query = "DELETE FROM packages WHERE name = :name";
-				query.name = package;
+				query.name = download[i].name;
 				update@Database(query)()
 			};
+
+			query = "INSERT INTO packages VALUES (:name, :server, :version)";
 			query.name = download[i].name;
 			query.server = download[i].server;
 			query.version = download[i].version;
-			query = "INSERT INTO packages VALUES (:name, :server, :version)";
 			update@Database(query)()
 		}
 	} ] { nullProcess }
@@ -262,10 +265,11 @@ main {
 		replacereq = request;
 		replacereq.regex = "\\*";
 		replacereq.replacement = "\\%";
-		replaceAll@StringUtils(replacereq)(query);
+		replaceAll@StringUtils(replacereq)(searchstr);
 
 		connectDatabaseSync;
-		query = "SELECT * FROM packages WHERE name LIKE '%" + query + "%'";
+		query = "SELECT * FROM packages WHERE name LIKE :searchstr";
+		query.searchstr = "%" + searchstr + "%";
 		query@Database(query)(packages);
 		for(i = 0, i < #packages.row, i++) {
 			response.package[i].name = packages.row[i].NAME;
@@ -281,10 +285,12 @@ main {
 		replacereq = request;
 		replacereq.regex = "\\*";
 		replacereq.replacement = "\\%";
-		replaceAll@StringUtils(replacereq)(query);
+		replaceAll@StringUtils(replacereq)(searchstr);
 
 		connectDatabaseLocal;
-		query@Database("SELECT * FROM packages WHERE name LIKE '%" + query + "%'")(packages);
+		query = "SELECT * FROM packages WHERE name LIKE :searchstr";
+		query.searchstr = "%" + searchstr + "%";
+		query@Database(query)(packages);
 		for(i = 0, i < #packages.row, i++) {
 			response.package[i].name = packages.row[i].NAME;
 			response.package[i].server = packages.row[i].SERVER;
