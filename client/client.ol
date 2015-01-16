@@ -5,7 +5,7 @@ include "environment.iol"
 include "ini_utils.iol"
 include "yaml_utils.iol"
 include "string_utils.iol"
-include "webget.iol"
+include "server.iol"
 include "zip_utils.iol"
 include "file.iol"
 include "file_utils.iol"
@@ -81,9 +81,10 @@ define setupDatabase {
 
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
-		update@Database("CREATE TABLE depends(
-			name VARCHAR(128) NOT NULL,
-			depends VARCHAR(128) NOT NULL
+		update@Database("CREATE TABLE depends (
+			name VARCHAR(128) NOT NULL UNIQUE,
+			depends VARCHAR(128) NOT NULL,
+			version VARCHAR(64) NOT NULL
 		)")()
 	};
 
@@ -100,9 +101,10 @@ define setupDatabase {
 
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
-		update@Database("CREATE TABLE depends(
-			name VARCHAR(128) NOT NULL,
-			depends VARCHAR(128) NOT NULL
+		update@Database("CREATE TABLE depends (
+			name VARCHAR(128) NOT NULL UNIQUE,
+			depends VARCHAR(128) NOT NULL,
+			version VARCHAR(64) NOT NULL
 		)")()
 	}
 }
@@ -123,6 +125,7 @@ main {
 		// Clear database
 		connectDatabaseSync;
 		update@Database("DELETE FROM packages")();
+		update@Database("DELETE FROM depends")();
 
 		// Create temp file
 		tempreq.prefix = "jpm";
@@ -142,9 +145,9 @@ main {
 
 				println@Console("Updating ["+server+"]")();
 
-				WebGet.location = Servers.(server).location;
+				Server.location = Servers.(server).location;
 
-				getRootManifest@WebGet()(data);
+				getRootManifest@Server()(data);
 				writereq.content = data;
 				writereq.filename = tempfile;
 				writereq.format = "text";
@@ -159,7 +162,11 @@ main {
 					query.version = root.packages.list[i].versions.list[
 						#root.packages.list[i].versions.list-1
 					];
-					update@Database(query)()
+					update@Database(query)();
+
+					specreq.name = query.name;
+					specreq.version = query.version;
+					getSpec@Server(specreq)(spec)
 				};
 
 				response.(server).status = true;
@@ -214,12 +221,12 @@ main {
 			println@Console("Installing: " + download[i].name)();
 
 			// Retrieve package specification
-			WebGet.location = Servers.(download[i].server).location;
+			Server.location = Servers.(download[i].server).location;
 
 			// Download package
 			pkgreq.name = download[i].name;
 			pkgreq.version = download[i].version;
-			getPackage@WebGet(pkgreq)(pkgdata);
+			getPackage@Server(pkgreq)(pkgdata);
 			if(pkgdata == null) {
 				println@Console("Could not download \"" + pkgreq.name + ".zip\"")();
 				throw(PackageNotFound)
