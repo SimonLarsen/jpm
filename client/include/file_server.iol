@@ -4,7 +4,7 @@ type FileServerGetFileRequest : void {
 
 interface FileServerInterface {
 	RequestResponse:
-		getFile(FileServerGetFileRequest)(raw)
+		getFile(FileServerGetFileRequest)(undefined)
 }
 
 outputPort FileServer {

@@ -59,10 +59,6 @@ main {
 
 	[ getSpec(request)(response) {
 		scope(GetSpec) {
-			install(TypeMismatch =>
-				throw(FileNotFound)
-			);
-
 			tempreq.prefix = "jpm";
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
@@ -70,6 +66,9 @@ main {
 			FileServer.location = Servers.(request.server).location;
 			getfilereq.path = request.name + "-" + request.version + ".jpmspec";
 			getFile@FileServer(getfilereq)(data);
+			if(data == null) {
+				throw(FileNotFound)
+			};
 
 			writereq.content = data;
 			writereq.filename = tempfile;
@@ -81,22 +80,17 @@ main {
 
 	[ getPackage(request)(response) {
 		scope(GetPackage) {
-			install(TypeMismatch =>
-				throw(FileNotFound)
-			);
-
 			FileServer.location = Servers.(request.server).location;
 			getfilereq.path = request.name + "-" + request.version + ".zip";
-			getFile@FileServer(getfilereq)(response)
+			getFile@FileServer(getfilereq)(response);
+			if(response == null) {
+				throw(FileNotFound)
+			}
 		}
 	} ] { nullProcess }
 
 	[ getRootManifest(request)(response) {
 		scope(GetRootManifest) {
-			install(TypeMismatch =>
-				throw(FileNotFound)
-			);
-
 			tempreq.prefix = "jpm";
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
@@ -104,6 +98,9 @@ main {
 			FileServer.location = Servers.(request.server).location;
 			getfilereq.path = "root.yaml";
 			getFile@FileServer(getfilereq)(data);
+			if(data == null) {
+				throw(FileNotFound)
+			};
 
 			writereq.content = data;
 			writereq.filename = tempfile;
