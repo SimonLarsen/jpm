@@ -1,0 +1,8 @@
+---
+packages:
+    - name: username
+      versions:
+          - "0.1"
+    - name: empty
+      versions:
+          - "1.0"

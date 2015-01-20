@@ -1,0 +1,4 @@
+---
+name: environment
+version: "0.1"
+description: Library for retrieving environment variables

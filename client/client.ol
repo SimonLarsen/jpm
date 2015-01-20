@@ -1,15 +1,12 @@
 include "console.iol"
 include "client.iol"
-include "database.iol"
-include "environment.iol"
-include "ini_utils.iol"
-include "yaml_utils.iol"
 include "string_utils.iol"
 include "server.iol"
 include "zip_utils.iol"
 include "file.iol"
 include "file_utils.iol"
 include "version_utils.iol"
+include "connect_database.iol"
 
 inputPort Input {
 	Location: "local"
@@ -17,55 +14,6 @@ inputPort Input {
 }
 
 execution { sequential }
-
-define parseConfig {
-	getVariable@Environment("HOME")(ENV_HOME);
-	parseIniFile@IniUtils(ENV_HOME + "/.jpm/rc.ini")(inifile);
-
-	// Setup defaults
-	Config.databasedir = ENV_HOME + "/.jpm/db/";
-	Config.datadir = ENV_HOME + "/.jpm/data/";
-
-	foreach(section : inifile) {
-		// Parse options
-		if(section == "options") {
-			// datadir = [path]
-			if(inifile.options.datadir != null) {
-				Config.datadir = inifile.options.datadir
-			}
-		}
-		// Add server definitions
-		else {
-			Servers.(section).location = inifile.(section).location
-		}
-	}
-}
-
-define connectDatabaseSync {
-	with(connectRequest) {
-		.host = "";
-		.driver = "derby_embedded";
-		.port = 0;
-		.database = Config.databasedir + "sync";
-		.username = "";
-		.password = "";
-		.attributes = "create=true"
-	};
-	connect@Database(connectRequest)()
-}
-
-define connectDatabaseLocal {
-	with(connectRequest) {
-		.host = "";
-		.driver = "derby_embedded";
-		.port = 0;
-		.database = Config.databasedir + "local";
-		.username = "";
-		.password = "";
-		.attributes = "create=true"
-	};
-	connect@Database(connectRequest)()
-}
 
 define setupDatabase {
 	connectDatabaseSync;
@@ -127,50 +75,20 @@ main {
 		update@Database("DELETE FROM packages")();
 		update@Database("DELETE FROM depends")();
 
-		// Create temp file
-		tempreq.prefix = "jpm";
-		tempreq.suffix = ".tmp";
-		createTempFile@FileUtils(tempreq)(tempfile);
+		getPackageList@Server()(packages);
 
-		foreach(server : Servers) {
-			response.(server).status = false;
+		for(i = 0, i < #packages.package, i++) {
+			query << packages.package[i];
+			query = "INSERT INTO packages VALUES (:name, :server, :version)";
+			update@Database(query)();
 
-			scope(UpdateServer) {
-				install(IOException =>
-					println@Console("Could not connect to ["+server+"]")()
-				);
-				install(TypeMismatch =>
-					println@Console("Could not retrieve files from ["+server+"]")()
-				);
+			getSpec@Server(packages.package[i])(spec);
+			for(j = 0, j < #spec.depends.list, j++) {
+				query.depends = spec.depends.list[j].list[0];
+				query.version = spec.depends.list[j].list[1];
 
-				println@Console("Updating ["+server+"]")();
-
-				Server.location = Servers.(server).location;
-
-				getRootManifest@Server()(data);
-				writereq.content = data;
-				writereq.filename = tempfile;
-				writereq.format = "text";
-				writeFile@File(writereq)();
-
-				parse@YamlUtils(tempfile)(root);
-
-				for(i = 0, i < #root.packages.list, i++) {
-					query = "INSERT INTO packages VALUES (:name, :server, :version)";
-					query.name = root.packages.list[i].name;
-					query.server = server;
-					query.version = root.packages.list[i].versions.list[
-						#root.packages.list[i].versions.list-1
-					];
-					update@Database(query)();
-
-					specreq.name = query.name;
-					specreq.version = query.version;
-					getSpec@Server(specreq)(spec)
-				};
-
-				response.(server).status = true;
-				response.(server).count = #root.packages.list
+				query = "INSERT INTO depends VALUES (:name, :depends, :version)";
+				update@Database(query)()
 			}
 		}
 	} ] { nullProcess }
@@ -217,24 +135,20 @@ main {
 
 		// Install needed packages
 		connectDatabaseLocal;
+
+		tempreq.prefix = "jpm";
+		tempreq.suffix = ".zip";
+		createTempFile@FileUtils(tempreq)(tempfile);
+
 		for(i = 0, i < #download, i++) {
 			println@Console("Installing: " + download[i].name)();
 
-			// Retrieve package specification
-			Server.location = Servers.(download[i].server).location;
-
 			// Download package
-			pkgreq.name = download[i].name;
-			pkgreq.version = download[i].version;
-			getPackage@Server(pkgreq)(pkgdata);
+			getPackage@Server(download)(pkgdata);
 			if(pkgdata == null) {
 				println@Console("Could not download \"" + pkgreq.name + ".zip\"")();
 				throw(PackageNotFound)
 			};
-
-			tempreq.prefix = "jpm";
-			tempreq.suffix = ".zip";
-			createTempFile@FileUtils(tempreq)(tempfile);
 
 			writereq.content = pkgdata;
 			writereq.filename = tempfile;
