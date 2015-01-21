@@ -5,7 +5,6 @@ include "server.iol"
 include "zip_utils.iol"
 include "file.iol"
 include "file_utils.iol"
-include "version_utils.iol"
 include "connect_database.iol"
 
 inputPort Input {
@@ -16,6 +15,9 @@ inputPort Input {
 execution { sequential }
 
 define setupDatabase {
+	// Note: Derby does not support IF EXITS.
+	// Must catch SQLExceptions instead.
+
 	connectDatabaseSync;
 
 	scope(CreateInstalled) {
@@ -30,9 +32,10 @@ define setupDatabase {
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
 		update@Database("CREATE TABLE depends (
-			name VARCHAR(128) NOT NULL UNIQUE,
+			name VARCHAR(128) NOT NULL,
+			version VARCHAR(64) NOT NULL,
 			depends VARCHAR(128) NOT NULL,
-			version VARCHAR(64) NOT NULL
+			depversion VARCHAR(64) NOT NULL
 		)")()
 	};
 
@@ -50,9 +53,10 @@ define setupDatabase {
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
 		update@Database("CREATE TABLE depends (
-			name VARCHAR(128) NOT NULL UNIQUE,
+			name VARCHAR(128) NOT NULL,
+			version VARCHAR(64) NOT NULL,
 			depends VARCHAR(128) NOT NULL,
-			version VARCHAR(64) NOT NULL
+			depversion VARCHAR(64) NOT NULL
 		)")()
 	}
 }
@@ -77,19 +81,20 @@ main {
 
 		getPackageList@Server()(packages);
 
-		for(i = 0, i < #packages.package, i++) {
-			query << packages.package[i];
+		foreach(name : packages) {
+			query << packages.(name);
 			query = "INSERT INTO packages VALUES (:name, :server, :version)";
 			update@Database(query)();
 
-			getSpec@Server(packages.package[i])(spec);
-			for(j = 0, j < #spec.depends.list, j++) {
-				query.depends = spec.depends.list[j].list[0];
-				query.version = spec.depends.list[j].list[1];
+			getSpec@Server(packages.(name))(spec);
+			for(i = 0, i < #spec.depends.list, i++) {
+				query.depends = spec.depends.list[i].list[0];
+				query.depversion = spec.depends.list[i].list[1];
 
-				query = "INSERT INTO depends VALUES (:name, :depends, :version)";
+				query = "INSERT INTO depends VALUES (:name, :version, :depends, :depversion)";
 				update@Database(query)()
 			}
+
 		}
 	} ] { nullProcess }
 
@@ -115,17 +120,6 @@ main {
 				throw(PackageNotFound)
 			};
 
-			// Find newest version of package
-			mostRecent = 0;
-			for(j = 1, j < #packages.row, j++) {
-				comparereq.a = packages.row[j].VERSION;
-				comparereq.b = packages.row[mostRecent].VERSION;
-				compare@VersionUtils(comparereq)(comparison);
-				if(comparison > 0) {
-					mostRecent = j
-				}
-			};
-
 			download[i].name = packages.row[mostRecent].NAME;
 			download[i].server = packages.row[mostRecent].SERVER;
 			download[i].version = packages.row[mostRecent].VERSION
@@ -134,12 +128,11 @@ main {
 		// Resolve dependencies
 
 		// Install needed packages
-		connectDatabaseLocal;
-
 		tempreq.prefix = "jpm";
 		tempreq.suffix = ".zip";
 		createTempFile@FileUtils(tempreq)(tempfile);
 
+		connectDatabaseLocal;
 		for(i = 0, i < #download, i++) {
 			println@Console("Installing: " + download[i].name)();
 

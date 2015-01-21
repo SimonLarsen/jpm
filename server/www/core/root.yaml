@@ -3,3 +3,6 @@ packages:
     - name: environment
       versions:
           - "0.1"
+    - name: empty
+      versions:
+          - "0.8"

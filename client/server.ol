@@ -1,11 +1,12 @@
-include "server_interface.iol"
+include "runtime.iol"
 include "console.iol"
-include "file_server.iol"
-include "yaml_utils.iol"
-include "connect_database.iol"
 include "file.iol"
 include "file_utils.iol"
-include "runtime.iol"
+include "yaml_utils.iol"
+include "version_utils.iol"
+include "file_server.iol"
+include "server_interface.iol"
+include "connect_database.iol"
 
 execution { concurrent }
 
@@ -35,7 +36,6 @@ init {
 
 main {
 	[ getPackageList()(response) {
-		npkgs = 0;
 		foreach(server : Servers) {
 			scope(UpdateServer) {
 				install(FileNotFound =>
@@ -47,10 +47,24 @@ main {
 
 				for(i = 0, i < #root.packages.list, i++) {
 					nversions = #root.packages.list[i].versions.list;
-					response.package[npkgs].name = root.packages.list[i].name;
-					response.package[npkgs].server = server;
-					response.package[npkgs].version = root.packages.list[i].versions.list[nversions-1];
-					npkgs++
+					name = root.packages.list[i].name;
+					version = root.packages.list[i].versions.list[nversions-1];
+
+					// Check if newer than existing version
+					if(response.(name).version != null) {
+						comparereq.a = version;
+						comparereq.b = response.(name).version;
+						compare@VersionUtils(comparereq)(compareres);
+						if(compareres > 0) {
+							response.(name).server = server;
+							response.(name).version = version
+						}
+					}
+					else {
+						response.(name).name = name;
+						response.(name).server = server;
+						response.(name).version = version
+					}
 				};
 				println@Console("Synchronized ["+server+"]")()
 			}
