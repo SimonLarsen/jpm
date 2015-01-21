@@ -1,8 +1,8 @@
-type InstallPackagesRequest : void {
+type ClientInstallPackagesRequest : void {
 	.packages[0,*] : string
 }
 
-type PackageListResponse : void {
+type ClientPackageListResponse : void {
 	.package[0,*] : void {
 		.name : string
 		.server : string
@@ -10,19 +10,26 @@ type PackageListResponse : void {
 	}
 }
 
-type SearchResponse : void {
+type ClientSearchResponse : void {
 	.package[0,*] : void {
 		.name : string
 		.server : string
 		.version : string
 	}
+}
+
+type ClientDownloadPackageRequest : void {
+	.name : string
+	.server : string
+	.version : string
 }
 
 interface ClientInterface {
 	RequestResponse:
 		update(void)(undefined),
 		upgrade(void)(void),
-		installPackages(InstallPackagesRequest)(void),
-		search(string)(SearchResponse),
-		list(string)(PackageListResponse)
+		installPackages(ClientInstallPackagesRequest)(void),
+		search(string)(ClientSearchResponse),
+		list(string)(ClientPackageListResponse),
+		downloadPackage(ClientDownloadPackageRequest)(void)
 }

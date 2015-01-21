@@ -6,13 +6,18 @@ include "zip_utils.iol"
 include "file.iol"
 include "file_utils.iol"
 include "connect_database.iol"
+include "runtime.iol"
 
 inputPort Input {
 	Location: "local"
 	Interfaces: ClientInterface
 }
 
-execution { sequential }
+outputPort Client {
+	Interfaces: ClientInterface
+}
+
+execution { concurrent }
 
 define setupDatabase {
 	// Note: Derby does not support IF EXITS.
@@ -62,6 +67,7 @@ define setupDatabase {
 }
 
 init {
+	getLocalLocation@Runtime()(Client.location);
 	parseConfig;
 
 	// Create missing directories
@@ -112,61 +118,40 @@ main {
 		// Add requested packages
 		connectDatabaseSync;
 		for(i = 0, i < #request.packages, i++) {
-			// Find most recent package
+			name = request.packages[i];
 			query = "SELECT * FROM packages WHERE name = :name";
-			query.name = request.packages[i];
+			query.name = name;
 			query@Database(query)(packages);
 			if(#packages.row == 0) {
+				println@Console("Package " + name + " not found")();
 				throw(PackageNotFound)
 			};
 
-			download[i].name = packages.row[mostRecent].NAME;
-			download[i].server = packages.row[mostRecent].SERVER;
-			download[i].version = packages.row[mostRecent].VERSION
+			download.(name).name = name;
+			download.(name).server = packages.row[0].SERVER;
+			download.(name).version = packages.row[0].VERSION;
+			undef(packages)
 		};
 
 		// Resolve dependencies
 
-		// Install needed packages
-		tempreq.prefix = "jpm";
-		tempreq.suffix = ".zip";
-		createTempFile@FileUtils(tempreq)(tempfile);
-
 		connectDatabaseLocal;
-		for(i = 0, i < #download, i++) {
-			println@Console("Installing: " + download[i].name)();
+		foreach(name : download) {
+			println@Console("Installing: " + name)();
 
 			// Download package
-			getPackage@Server(download)(pkgdata);
-			if(pkgdata == null) {
-				println@Console("Could not download \"" + pkgreq.name + ".zip\"")();
-				throw(PackageNotFound)
-			};
-
-			writereq.content = pkgdata;
-			writereq.filename = tempfile;
-			writereq.format = "binary";
-			writeFile@File(writereq)();
-
-			// Unzip archive to data directory
-			unzipreq.filename = tempfile;
-			unzipreq.targetPath = Config.datadir;
-			unzip@ZipUtils(unzipreq)();
+			downloadPackage@Client(download.(name))();
 
 			// Update database
+			query << download.(name);
 			query = "SELECT * FROM packages WHERE name = :name";
-			query.name = download[i].name;
 			query@Database(query)(packages);
 			if(#packages.row > 0) {
 				query = "DELETE FROM packages WHERE name = :name";
-				query.name = download[i].name;
 				update@Database(query)()
 			};
 
 			query = "INSERT INTO packages VALUES (:name, :server, :version)";
-			query.name = download[i].name;
-			query.server = download[i].server;
-			query.version = download[i].version;
 			update@Database(query)()
 		}
 	} ] { nullProcess }
@@ -210,5 +195,28 @@ main {
 			response.package[i].server = packages.row[i].SERVER;
 			response.package[i].version = packages.row[i].VERSION
 		}
+	} ] { nullProcess }
+
+	[ downloadPackage(request)() {
+		// Install needed packages
+		tempreq.prefix = request.name;
+		tempreq.suffix = ".zip";
+		createTempFile@FileUtils(tempreq)(tempfile);
+
+		getPackage@Server(request)(pkgdata);
+		if(pkgdata == null) {
+			println@Console("Could not download package " + request.name)();
+			throw(PackageNotFound)
+		};
+
+		writereq.content = pkgdata;
+		writereq.filename = tempfile;
+		writereq.format = "binary";
+		writeFile@File(writereq)();
+
+		// Unzip archive to data directory
+		unzipreq.filename = tempfile;
+		unzipreq.targetPath = Config.datadir;
+		unzip@ZipUtils(unzipreq)()
 	} ] { nullProcess }
 }
