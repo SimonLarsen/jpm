@@ -40,7 +40,10 @@ define parseServers {
 init {
 	getLocalLocation@Runtime()(Server.location);
 	parseConfig;
-	parseServers
+	parseServers;
+
+	// Make local pointer to output port locations
+	HTTPServer.location -> http_location
 }
 
 main {
@@ -126,7 +129,7 @@ main {
 		);
 
 		if(Servers.(request.server).protocol == "http") {
-			HTTPServer.location = Servers.(request.server).location;
+			http_location = Servers.(request.server).location;
 			getfilereq.path = request.path;
 			getFile@HTTPServer(getfilereq)(response)
 		}
