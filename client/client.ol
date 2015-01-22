@@ -20,14 +20,13 @@ outputPort Client {
 execution { concurrent }
 
 define setupDatabase {
+	connectDatabase;
+
 	// Note: Derby does not support IF EXITS.
 	// Must catch SQLExceptions instead.
-
-	connectDatabaseSync;
-
 	scope(CreateInstalled) {
 		install(SQLException => nullProcess);
-		update@Database("CREATE TABLE packages (
+		update@Database("CREATE TABLE sync_packages (
 			name VARCHAR(128) NOT NULL UNIQUE,
 			server VARCHAR(128) NOT NULL,
 			version VARCHAR(64) NOT NULL
@@ -36,7 +35,7 @@ define setupDatabase {
 
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
-		update@Database("CREATE TABLE depends (
+		update@Database("CREATE TABLE sync_depends (
 			name VARCHAR(128) NOT NULL,
 			version VARCHAR(64) NOT NULL,
 			depends VARCHAR(128) NOT NULL,
@@ -44,11 +43,9 @@ define setupDatabase {
 		)")()
 	};
 
-	connectDatabaseLocal;
-
 	scope(CreateAvailable) {
 		install(SQLException => nullProcess);
-		update@Database("CREATE TABLE packages (
+		update@Database("CREATE TABLE local_packages (
 			name VARCHAR(128) NOT NULL,
 			server VARCHAR(128) NOT NULL,
 			version VARCHAR(64) NOT NULL
@@ -57,7 +54,7 @@ define setupDatabase {
 
 	scope(CreateDepends) {
 		install(SQLException => nullProcess);
-		update@Database("CREATE TABLE depends (
+		update@Database("CREATE TABLE local_depends (
 			name VARCHAR(128) NOT NULL,
 			version VARCHAR(64) NOT NULL,
 			depends VARCHAR(128) NOT NULL,
@@ -81,15 +78,15 @@ main {
 	 */
 	[ update()(response) {
 		// Clear database
-		connectDatabaseSync;
-		update@Database("DELETE FROM packages")();
-		update@Database("DELETE FROM depends")();
+		connectDatabase;
+		update@Database("DELETE FROM sync_packages")();
+		update@Database("DELETE FROM sync_depends")();
 
 		getPackageList@Server()(packages);
 
 		foreach(name : packages) {
 			query << packages.(name);
-			query = "INSERT INTO packages VALUES (:name, :server, :version)";
+			query = "INSERT INTO sync_packages VALUES (:name, :server, :version)";
 			update@Database(query)();
 
 			getSpec@Server(packages.(name))(spec);
@@ -97,7 +94,7 @@ main {
 				query.depends = spec.depends.list[i].list[0];
 				query.depversion = spec.depends.list[i].list[1];
 
-				query = "INSERT INTO depends VALUES (:name, :version, :depends, :depversion)";
+				query = "INSERT INTO sync_depends VALUES (:name, :version, :depends, :depversion)";
 				update@Database(query)()
 			}
 
@@ -115,11 +112,12 @@ main {
 	 * Installs one or more packages.
 	 */
 	[ installPackages(request)() {
+		connectDatabase;
+
 		// Add requested packages
-		connectDatabaseSync;
 		for(i = 0, i < #request.packages, i++) {
 			name = request.packages[i];
-			query = "SELECT * FROM packages WHERE name = :name";
+			query = "SELECT * FROM sync_packages WHERE name = :name";
 			query.name = name;
 			query@Database(query)(packages);
 			if(#packages.row == 0) {
@@ -135,23 +133,22 @@ main {
 
 		// Resolve dependencies
 
-		connectDatabaseLocal;
+		// Download needed packages
 		foreach(name : download) {
-			println@Console("Installing: " + name)();
-
 			// Download package
+			println@Console("Installing: " + name + " " + download.(name).version)();
 			downloadPackage@Client(download.(name))();
 
 			// Update database
 			query << download.(name);
-			query = "SELECT * FROM packages WHERE name = :name";
+			query = "SELECT * FROM local_packages WHERE name = :name";
 			query@Database(query)(packages);
 			if(#packages.row > 0) {
-				query = "DELETE FROM packages WHERE name = :name";
+				query = "DELETE FROM local_packages WHERE name = :name";
 				update@Database(query)()
 			};
 
-			query = "INSERT INTO packages VALUES (:name, :server, :version)";
+			query = "INSERT INTO local_packages VALUES (:name, :server, :version)";
 			update@Database(query)()
 		}
 	} ] { nullProcess }
@@ -166,8 +163,9 @@ main {
 		replacereq.replacement = "\\%";
 		replaceAll@StringUtils(replacereq)(searchstr);
 
-		connectDatabaseSync;
-		query = "SELECT * FROM packages WHERE name LIKE :searchstr";
+		connectDatabase;
+		query = "SELECT * FROM sync_packages
+			WHERE name LIKE :searchstr ORDER BY server";
 		query.searchstr = "%" + searchstr + "%";
 		query@Database(query)(packages);
 		for(i = 0, i < #packages.row, i++) {
@@ -186,8 +184,9 @@ main {
 		replacereq.replacement = "\\%";
 		replaceAll@StringUtils(replacereq)(searchstr);
 
-		connectDatabaseLocal;
-		query = "SELECT * FROM packages WHERE name LIKE :searchstr";
+		connectDatabase;
+		query = "SELECT * FROM local_packages
+			WHERE name LIKE :searchstr ORDER BY server";
 		query.searchstr = "%" + searchstr + "%";
 		query@Database(query)(packages);
 		for(i = 0, i < #packages.row, i++) {

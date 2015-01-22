@@ -3,8 +3,9 @@ include "console.iol"
 include "file.iol"
 include "file_utils.iol"
 include "yaml_utils.iol"
+include "string_utils.iol"
 include "version_utils.iol"
-include "file_server.iol"
+include "http_server.iol"
 include "server_interface.iol"
 include "connect_database.iol"
 
@@ -23,8 +24,16 @@ define parseServers {
 	getVariable@Environment("HOME")(ENV_HOME);
 	parseIniFile@IniUtils(ENV_HOME + "/.jpm/servers.ini")(inifile);
 
-	foreach(section : inifile) {
-		Servers.(section).location = inifile.(section).location
+	splitreq.regex = "://";
+	foreach(server : inifile) {
+		splitreq = inifile.(server).location;
+		split@StringUtils(splitreq)(parts);
+		if(parts.result[0] == "http") {
+			Servers.(server).location = "socket://" + parts.result[1];
+			Servers.(server).protocol = "http"
+		} else {
+			println@Console("Server ["+server+"] unusable. Unsupported protocol "+parts.result[0])()
+		}
 	}
 }
 
@@ -77,12 +86,9 @@ main {
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
 
-			FileServer.location = Servers.(request.server).location;
-			getfilereq.path = request.name + "-" + request.version + ".jpmspec";
-			getFile@FileServer(getfilereq)(data);
-			if(data == null) {
-				throw(FileNotFound)
-			};
+			getfilereq.path = request.name+"-"+request.version+".jpmspec";
+			getfilereq.server = request.server;
+			getFile@Server(getfilereq)(data);
 
 			writereq.content = data;
 			writereq.filename = tempfile;
@@ -93,34 +99,36 @@ main {
 	} ] { nullProcess }
 
 	[ getPackage(request)(response) {
-		scope(GetPackage) {
-			FileServer.location = Servers.(request.server).location;
-			getfilereq.path = request.name + "-" + request.version + ".zip";
-			getFile@FileServer(getfilereq)(response);
-			if(response == null) {
-				throw(FileNotFound)
-			}
-		}
+		getfilereq.path = request.name+"-"+request.version+".zip";
+		getfilereq.server = request.server;
+		getFile@Server(getfilereq)(response)
 	} ] { nullProcess }
 
 	[ getRootManifest(request)(response) {
-		scope(GetRootManifest) {
-			tempreq.prefix = "jpm";
-			tempreq.suffix = ".yaml";
-			createTempFile@FileUtils(tempreq)(tempfile);
+		tempreq.prefix = "jpm";
+		tempreq.suffix = ".yaml";
+		createTempFile@FileUtils(tempreq)(tempfile);
 
-			FileServer.location = Servers.(request.server).location;
-			getfilereq.path = "root.yaml";
-			getFile@FileServer(getfilereq)(data);
-			if(data == null) {
-				throw(FileNotFound)
-			};
+		getfilereq.path = "root.yaml";
+		getfilereq.server = request.server;
+		getFile@Server(getfilereq)(data);
 
-			writereq.content = data;
-			writereq.filename = tempfile;
-			writeFile@File(writereq)();
+		writereq.content = data;
+		writereq.filename = tempfile;
+		writeFile@File(writereq)();
 
-			parse@YamlUtils(tempfile)(response)
+		parse@YamlUtils(tempfile)(response)
+	} ] { nullProcess }
+
+	[ getFile(request)(response) {
+		install(TypeMismatch =>
+			throw(FileNotFound)
+		);
+
+		if(Servers.(request.server).protocol == "http") {
+			HTTPServer.location = Servers.(request.server).location;
+			getfilereq.path = request.path;
+			getFile@HTTPServer(getfilereq)(response)
 		}
 	} ] { nullProcess }
 }

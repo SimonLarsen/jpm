@@ -21,25 +21,12 @@ define parseConfig {
 	}
 }
 
-define connectDatabaseSync {
+define connectDatabase {
 	with(connectRequest) {
 		.host = "";
 		.driver = "derby_embedded";
 		.port = 0;
-		.database = Config.databasedir + "sync";
-		.username = "";
-		.password = "";
-		.attributes = "create=true"
-	};
-	connect@Database(connectRequest)()
-}
-
-define connectDatabaseLocal {
-	with(connectRequest) {
-		.host = "";
-		.driver = "derby_embedded";
-		.port = 0;
-		.database = Config.databasedir + "local";
+		.database = Config.databasedir;
 		.username = "";
 		.password = "";
 		.attributes = "create=true"
