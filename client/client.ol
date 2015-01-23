@@ -149,7 +149,8 @@ main {
 			};
 
 			query = "INSERT INTO local_packages VALUES (:name, :server, :version)";
-			update@Database(query)()
+			update@Database(query)();
+			undef(packages)
 		}
 	} ] { nullProcess }
 
@@ -203,10 +204,6 @@ main {
 		createTempFile@FileUtils(tempreq)(tempfile);
 
 		getPackage@Server(request)(pkgdata);
-		if(pkgdata == null) {
-			println@Console("Could not download package " + request.name)();
-			throw(PackageNotFound)
-		};
 
 		writereq.content = pkgdata;
 		writereq.filename = tempfile;
