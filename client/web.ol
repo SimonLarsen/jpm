@@ -4,6 +4,7 @@ include "string_utils.iol"
 include "format.iol"
 include "web.iol"
 include "client.iol"
+include "web_page.iol"
 
 constants {
 	WebLocation = "socket://localhost:8001/",
@@ -29,8 +30,13 @@ outputPort Client {
 	Interfaces: ClientInterface
 }
 
+outputPort WebPage {
+	Interfaces: WebPageInterface
+}
+
 embedded {
 	Jolie: "client.ol" in Client
+	Jolie: "web_page.ol" in WebPage
 }
 
 init {
@@ -80,25 +86,26 @@ main {
 	[ login(request)(response) {
 		if(request.username != null && request.password != null) {
 			if(request.username == "admin" && request.password == "hunter2") {
-				file.filename = "templates/redirect.html";
-				file.format = "text";
-				readFile@File(file)(template);
-
-				template.url = "installPackages";
-				template@Format(template)(response);
+				page.layout = "empty";
+				page.template = "redirect";
+				page.data.url = "installPackages";
+				present@WebPage(page)(response);
+				undef(page);
 
 				response.sid = csets.sid = new
 			}
 			else {
-				file.filename = "templates/login_error.html";
-				file.format = "text";
-				readFile@File(file)(response)
+				page.layout = "empty";
+				page.template = "login_error";
+				present@WebPage(page)(response);
+				undef(page)
 			}
 		}
 		else {
-			file.filename = "templates/login.html";
-			file.format = "text";
-			readFile@File(file)(response)
+			page.layout = "empty";
+			page.template = "login_error";
+			present@WebPage(page)(response);
+			undef(page)
 		};
 		format = "html"
 	} ] { 
@@ -107,34 +114,35 @@ main {
 			[ update()(response) {
 				update@Client()(output);
 
-				file.filename = "templates/update.html";
-				file.format = "text";
-				readFile@File(file)(template);
+				page.template = "update";
+				page.data.title = "Update - jpm";
 
 				foreach(server : output) {
 					if(output.(server).status == true) {
-						template.rows += "<tr>
+						page.data.rows += "<tr>
 						<td>" + server + "</td>
 						<td>Success</td>
 						<td>" + output.(server).count + "</td></tr>"
 					} else {
-						template.rows += "<tr class=\"danger\">
+						page.data.rows += "<tr class=\"danger\">
 						<td>" + server + "</td>
 						<td>Failed</td>
 						<td>" + output.(server).count + "</td></tr>"
 					}
 				};
-				template.rows += "</tr>";
+				page.data.rows += "</tr>";
 
-				template@Format(template)(response);
+				present@WebPage(page)(response);
+				undef(page);
 				format = "html"
 			} ] { nullProcess }
 
 			[ installPackages(request)(response) {
 				if(request.packages == null) {
-					file.filename = "templates/installPackages.html";
-					file.format = "text";
-					readFile@File(file)(response);
+					page.template = "installPackages";
+					page.data.title = "Install packages - jpm";
+					present@WebPage(page)(response);
+					undef(page);
 					format = "html"
 				}
 				else {
@@ -156,21 +164,20 @@ main {
 					request.query = "*"
 				};
 
-				file.filename = "templates/search.html";
-				file.format = "text";
-				readFile@File(file)(template);
-
-				template.query = request.query;
+				page.template = "search";
+				page.data.title = "Search - jpm";
+				page.data.query = request.query;
 
 				search@Client(request.query)(packages);
 				for(i = 0, i < #packages.package, i++) {
-					template.rows +=
+					page.data.rows +=
 					"<tr><td>"	+ packages.package[i].name + "</td>
 					<td>"		+ packages.package[i].server + "</td>
 					<td>"		+ packages.package[i].version + "</td></tr>"
 				};
 
-				template@Format(template)(response);
+				present@WebPage(page)(response);
+				undef(page);
 				format = "html"
 			} ] { nullProcess }
 
@@ -179,21 +186,20 @@ main {
 					request.query = "*"
 				};
 
-				file.filename = "templates/list.html";
-				file.format = "text";
-				readFile@File(file)(template);
-
-				template.query = request.query;
+				page.template = "list";
+				page.data.title = "Installed packages - jpm";
+				page.data.query = request.query;
 
 				list@Client(request.query)(packages);
 				for(i = 0, i < #packages.package, i++) {
-					template.packages += "<tr>
+					page.data.packages += "<tr>
 						<td>" + packages.package[i].name + "</td>
 						<td>" + packages.package[i].server + "</td>
 						<td>" + packages.package[i].version + "</td></tr>"
 				};
 
-				template@Format(template)(response);
+				present@WebPage(page)(response);
+				undef(page);
 				format = "html"
 			} ] { nullProcess }
 

@@ -1,66 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<title>Search - jpm</title>
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-		<link rel="stylesheet" href="css/style.css">
-	</head>
-	<body>
-		<div id="heading">
-			<div class="wrapper">
-				<div id="menu">
-					<ul class="list-inline">
-						<li>
-							<a href="/"><img src="/img/icon.png" alt="jpm icon"></a>
-						</li>
-						<li>
-							<a href="installPackages">Install packages</a>
-						</li>
-						<li>
-							<a href="update">Update database</a>
-						</li>
-						<li>
-							<a href="list">Installed packages</a>
-						</li>
-					</ul>
-				</div>
-				<div id="search-box">
-					<form action="search" method="GET" class="form-inline">
-						<div class="form-group">
-							<label class="sr-only" for="search-input">Search</label>
-							<input type="search" class="form-control" id="search-input" name="query" placeholder="Search packages">
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
+<h2>Search</h2>
 
-		<div id="content">
-			<div class="wrapper">
-				<h2>Search</h2>
+<form action="search" method="GET">
+	<div class="form-group">
+		<label for="query">Enter search terms</label>
+		<input type="search" class="form-control" id="query" name="query" placeholder="Package search terms">
+	</div>
+	<button type="submit" class="btn btn-primary">Search</button>
+</form>
 
-				<form action="search" method="GET">
-					<div class="form-group">
-						<label for="query">Enter search terms</label>
-						<input type="search" class="form-control" id="query" name="query" placeholder="Package search terms">
-					</div>
-					<button type="submit" class="btn btn-primary">Search</button>
-				</form>
+<h3>Results for "${query}"</h3>
 
-				<h3>Results for "${query}"</h3>
-
-				<table class="table table-striped">
-					<thead>
-						<tr>
-							<th>Name</th><th>Server</th><th>Version</th>
-						</tr>
-					</thead>
-					<tbody>
-						${rows}
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</body>
-</html>
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th>Name</th><th>Server</th><th>Version</th>
+		</tr>
+	</thead>
+	<tbody>
+		${rows}
+	</tbody>
+</table>
