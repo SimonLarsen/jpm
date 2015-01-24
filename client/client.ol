@@ -127,8 +127,7 @@ main {
 
 			download.(name).name = name;
 			download.(name).server = packages.row[0].SERVER;
-			download.(name).version = packages.row[0].VERSION;
-			undef(packages)
+			download.(name).version = packages.row[0].VERSION
 		};
 
 		// Resolve dependencies
@@ -149,8 +148,7 @@ main {
 			};
 
 			query = "INSERT INTO local_packages VALUES (:name, :server, :version)";
-			update@Database(query)();
-			undef(packages)
+			update@Database(query)()
 		}
 	} ] { nullProcess }
 

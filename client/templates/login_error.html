@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>jpm</title>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+		<link rel="stylesheet" href="css/style.css">
+	</head>
+	<body>
+		<div class="container">
+			<div id="login-header">
+				<img src="img/icon.png" alt="jpm logo">
+			</div>
+
+			<div id="login-box">
+				<form action="login" method="POST">
+					<div class="alert alert-danger" role="alert">
+						<p><b>Invalid login.</b> Please try again.</p>
+					</div>
+					<div class="form-group">
+						<label for="usernameInput">Username</label>
+						<input type="text" class="form-control" id="usernameInput" name="username">
+					</div>
+					<div class="form-group">
+						<label for="passwordInput">Password</label>
+						<input type="password" class="form-control" id="passwordInput" name="password">
+					</div>
+					<button type="submit" class="btn btn-default">Log in</button>
+				</form>
+			</div>
+		</div>
+	</body>
+</html>
