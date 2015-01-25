@@ -1,20 +1,23 @@
 include "console.iol"
-include "client.iol"
+include "client_interface.iol"
 include "string_utils.iol"
-include "server.iol"
-include "zip_utils.iol"
+include "server_interface.iol"
 include "file.iol"
 include "file_utils.iol"
+include "parse_config.iol"
 include "connect_database.iol"
-include "runtime.iol"
 
 inputPort Input {
 	Location: "local"
 	Interfaces: ClientInterface
 }
 
-outputPort Client {
-	Interfaces: ClientInterface
+outputPort Server {
+	Interfaces: ServerInterface
+}
+
+embedded {
+	Jolie: "server.ol" in Server
 }
 
 execution { concurrent }
@@ -37,9 +40,8 @@ define setupDatabase {
 		install(SQLException => nullProcess);
 		update@Database("CREATE TABLE sync_depends (
 			name VARCHAR(128) NOT NULL,
-			version VARCHAR(64) NOT NULL,
 			depends VARCHAR(128) NOT NULL,
-			depversion VARCHAR(64) NOT NULL
+			version VARCHAR(64) NOT NULL
 		)")()
 	};
 
@@ -56,15 +58,13 @@ define setupDatabase {
 		install(SQLException => nullProcess);
 		update@Database("CREATE TABLE local_depends (
 			name VARCHAR(128) NOT NULL,
-			version VARCHAR(64) NOT NULL,
 			depends VARCHAR(128) NOT NULL,
-			depversion VARCHAR(64) NOT NULL
+			version VARCHAR(64) NOT NULL
 		)")()
 	}
 }
 
 init {
-	getLocalLocation@Runtime()(Client.location);
 	parseConfig;
 
 	// Create missing directories
@@ -94,7 +94,7 @@ main {
 				query.depends = spec.depends.list[i].list[0];
 				query.depversion = spec.depends.list[i].list[1];
 
-				query = "INSERT INTO sync_depends VALUES (:name, :version, :depends, :depversion)";
+				query = "INSERT INTO sync_depends VALUES (:name, :depends, :depversion)";
 				update@Database(query)()
 			}
 
@@ -136,7 +136,7 @@ main {
 		foreach(name : download) {
 			// Download package
 			println@Console("Installing: " + name + " " + download.(name).version)();
-			downloadPackage@Client(download.(name))();
+			downloadPackage@Server(download.(name))();
 
 			// Update database
 			query << download.(name);
@@ -193,24 +193,5 @@ main {
 			response.package[i].server = packages.row[i].SERVER;
 			response.package[i].version = packages.row[i].VERSION
 		}
-	} ] { nullProcess }
-
-	[ downloadPackage(request)() {
-		// Install needed packages
-		tempreq.prefix = request.name;
-		tempreq.suffix = ".zip";
-		createTempFile@FileUtils(tempreq)(tempfile);
-
-		getPackage@Server(request)(pkgdata);
-
-		writereq.content = pkgdata;
-		writereq.filename = tempfile;
-		writereq.format = "binary";
-		writeFile@File(writereq)();
-
-		// Unzip archive to data directory
-		unzipreq.filename = tempfile;
-		unzipreq.targetPath = Config.datadir;
-		unzip@ZipUtils(unzipreq)()
 	} ] { nullProcess }
 }

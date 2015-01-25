@@ -2,9 +2,9 @@ include "console.iol"
 include "file.iol"
 include "string_utils.iol"
 include "format.iol"
-include "web.iol"
-include "client.iol"
-include "web_page.iol"
+include "web_interface.iol"
+include "client_interface.iol"
+include "web_page_interface.iol"
 
 constants {
 	WebLocation = "socket://localhost:8001/",

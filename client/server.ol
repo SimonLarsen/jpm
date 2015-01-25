@@ -2,12 +2,13 @@ include "runtime.iol"
 include "console.iol"
 include "file.iol"
 include "file_utils.iol"
+include "zip_utils.iol"
 include "yaml_utils.iol"
 include "string_utils.iol"
 include "version_utils.iol"
 include "http_server.iol"
 include "server_interface.iol"
-include "connect_database.iol"
+include "parse_config.iol"
 
 execution { concurrent }
 
@@ -50,8 +51,9 @@ main {
 	[ getPackageList()(response) {
 		foreach(server : Servers) {
 			scope(UpdateServer) {
-				install(FileNotFound =>
-					println@Console("Error synchronizing server ["+server+"]")()
+				install(
+					FileNotFound => throw(ServerFault),
+					TypeMismatch => throw(ServerFault)
 				);
 
 				getrootreq.server = server;
@@ -84,21 +86,19 @@ main {
 	} ] { nullProcess }
 
 	[ getSpec(request)(response) {
-		scope(GetSpec) {
-			tempreq.prefix = "jpm";
-			tempreq.suffix = ".yaml";
-			createTempFile@FileUtils(tempreq)(tempfile);
+		tempreq.prefix = "jpm";
+		tempreq.suffix = ".yaml";
+		createTempFile@FileUtils(tempreq)(tempfile);
 
-			getfilereq.path = request.name+"-"+request.version+".jpmspec";
-			getfilereq.server = request.server;
-			getFile@Server(getfilereq)(data);
+		getfilereq.path = request.name+"-"+request.version+".jpmspec";
+		getfilereq.server = request.server;
+		getFile@Server(getfilereq)(data);
 
-			writereq.content = data;
-			writereq.filename = tempfile;
-			writeFile@File(writereq)();
+		writereq.content = data;
+		writereq.filename = tempfile;
+		writeFile@File(writereq)();
 
-			parse@YamlUtils(tempfile)(response)
-		}
+		parse@YamlUtils(tempfile)(response)
 	} ] { nullProcess }
 
 	[ getPackage(request)(response) {
@@ -124,14 +124,27 @@ main {
 	} ] { nullProcess }
 
 	[ getFile(request)(response) {
-		install(TypeMismatch =>
-			throw(FileNotFound)
-		);
-
 		if(Servers.(request.server).protocol == "http") {
 			http_location = Servers.(request.server).location;
 			getfilereq.path = request.path;
 			getFile@HTTPServer(getfilereq)(response)
 		}
+	} ] { nullProcess }
+
+	[ downloadPackage(request)() {
+		tempreq.prefix = request.name;
+		tempreq.suffix = ".zip";
+		createTempFile@FileUtils(tempreq)(tempfile);
+
+		getPackage@Server(request)(pkgdata);
+
+		writereq.content = pkgdata;
+		writereq.filename = tempfile;
+		writereq.format = "binary";
+		writeFile@File(writereq)();
+		
+		unzipreq.filename = tempfile;
+		unzipreq.targetPath = request.Config.datadir;
+		unzip@ZipUtils(unzipreq)()
 	} ] { nullProcess }
 }

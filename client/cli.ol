@@ -1,5 +1,5 @@
 include "console.iol"
-include "client.iol"
+include "client_interface.iol"
 
 constants {
 	HELP_TEXT = "jpm is a packages manager for Jolie.

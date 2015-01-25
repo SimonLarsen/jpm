@@ -19,11 +19,18 @@ type ServerGetFileRequest : void {
 	.path : string
 }
 
+type ServerDownloadPackageRequest : void {
+	.name : string
+	.server : string
+	.version : string
+}
+
 interface ServerInterface {
 	RequestResponse:
 		getPackageList(void)(undefined),
-		getSpec(ServerGetSpecRequest)(undefined) throws FileNotFound,
-		getPackage(ServerGetPackageRequest)(raw) throws FileNotFound,
-		getRootManifest(ServerGetRootManifestRequest)(undefined) throws FileNotFound,
-		getFile(ServerGetFileRequest)(raw) throws FileNotFound
+		getSpec(ServerGetSpecRequest)(undefined) throws ServerFault,
+		getPackage(ServerGetPackageRequest)(raw) throws ServerFault,
+		getRootManifest(ServerGetRootManifestRequest)(undefined) throws ServerFault,
+		getFile(ServerGetFileRequest)(raw) throws ServerFault,
+		downloadPackage(ServerDownloadPackageRequest)(void) throws ServerFault
 }

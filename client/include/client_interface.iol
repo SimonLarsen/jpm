@@ -18,18 +18,11 @@ type ClientSearchResponse : void {
 	}
 }
 
-type ClientDownloadPackageRequest : void {
-	.name : string
-	.server : string
-	.version : string
-}
-
 interface ClientInterface {
 	RequestResponse:
 		update(void)(undefined),
 		upgrade(void)(void),
 		installPackages(ClientInstallPackagesRequest)(void),
 		search(string)(ClientSearchResponse),
-		list(string)(ClientPackageListResponse),
-		downloadPackage(ClientDownloadPackageRequest)(void)
+		list(string)(ClientPackageListResponse)
 }
