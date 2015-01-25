@@ -8,7 +8,7 @@ body {
 }
 
 div .wrapper {
-	max-width: 900px;
+	width: 900px;
 	margin-left: auto;
 	margin-right: auto;
 }
@@ -32,7 +32,7 @@ div #menu a:hover {
 }
 
 div #menu li {
-	margin-right: 13px;
+	margin-right: 20px;
 }
 
 div #search-box {
@@ -48,7 +48,7 @@ div #search-input {
 }
 
 div #content {
-	max-width: 900px;
+	width: 900px;
 	margin-left: auto;
 	margin-right: auto;
 }

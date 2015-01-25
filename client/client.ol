@@ -89,6 +89,8 @@ main {
 			query = "INSERT INTO sync_packages VALUES (:name, :server, :version)";
 			update@Database(query)();
 
+			response.(packages.(name).server).count++;
+
 			getSpec@Server(packages.(name))(spec);
 			for(i = 0, i < #spec.depends.list, i++) {
 				query.depends = spec.depends.list[i].list[0];

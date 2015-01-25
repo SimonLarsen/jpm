@@ -86,7 +86,6 @@ main {
 	[ login(request)(response) {
 		if(request.username != null && request.password != null) {
 			if(request.username == "admin" && request.password == "hunter2") {
-				page.layout = "empty";
 				page.template = "redirect";
 				page.data.url = "installPackages";
 				present@WebPage(page)(response);
@@ -95,15 +94,13 @@ main {
 				response.sid = csets.sid = new
 			}
 			else {
-				page.layout = "empty";
 				page.template = "login_error";
 				present@WebPage(page)(response);
 				undef(page)
 			}
 		}
 		else {
-			page.layout = "empty";
-			page.template = "login_error";
+			page.template = "login";
 			present@WebPage(page)(response);
 			undef(page)
 		};
@@ -114,19 +111,18 @@ main {
 			[ update()(response) {
 				update@Client()(output);
 
+				page.layout = "default";
 				page.template = "update";
 				page.data.title = "Update - jpm";
 
 				foreach(server : output) {
-					if(output.(server).status == true) {
+					if(output.(server).count > 0) {
 						page.data.rows += "<tr>
 						<td>" + server + "</td>
-						<td>Success</td>
 						<td>" + output.(server).count + "</td></tr>"
 					} else {
 						page.data.rows += "<tr class=\"danger\">
 						<td>" + server + "</td>
-						<td>Failed</td>
 						<td>" + output.(server).count + "</td></tr>"
 					}
 				};
@@ -139,6 +135,7 @@ main {
 
 			[ installPackages(request)(response) {
 				if(request.packages == null) {
+					page.layout = "default";
 					page.template = "installPackages";
 					page.data.title = "Install packages - jpm";
 					present@WebPage(page)(response);
@@ -164,6 +161,7 @@ main {
 					request.query = "*"
 				};
 
+				page.layout = "default";
 				page.template = "search";
 				page.data.title = "Search - jpm";
 				page.data.query = request.query;
@@ -186,6 +184,7 @@ main {
 					request.query = "*"
 				};
 
+				page.layout = "default";
 				page.template = "list";
 				page.data.title = "Installed packages - jpm";
 				page.data.query = request.query;

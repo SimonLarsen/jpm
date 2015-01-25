@@ -1,5 +1,4 @@
-include "console.iol"
-include "web_page.iol"
+include "web_page_interface.iol"
 include "file.iol"
 include "format.iol"
 
@@ -12,10 +11,6 @@ inputPort Input {
 
 main {
 	[ present(request)(response) {
-		if(request.layout == null) {
-			request.layout = "default"
-		};
-
 		file.format = "text";
 		file.filename = "templates/" + request.template + ".html";
 		readFile@File(file)(template);
@@ -24,11 +19,15 @@ main {
 		templatereq = template;
 		template@Format(templatereq)(content);
 
-		file.filename = "layouts/" + request.layout + ".html";
-		readFile@File(file)(layout);
+		if(request.layout != null) {
+			file.filename = "layouts/" + request.layout + ".html";
+			readFile@File(file)(layout);
 
-		templatereq = layout;
-		templatereq._content_ = content;
-		template@Format(templatereq)(response)
+			templatereq = layout;
+			templatereq._content_ = content;
+			template@Format(templatereq)(response)
+		} else {
+			response = content
+		}
 	} ] { nullProcess }
 }
