@@ -51,9 +51,8 @@ main {
 	[ getPackageList()(response) {
 		foreach(server : Servers) {
 			scope(UpdateServer) {
-				install(
-					FileNotFound => throw(ServerFault),
-					TypeMismatch => throw(ServerFault)
+				install(ServerFault =>
+					println@Console("Error synchronizing server ["+server+"]")()
 				);
 
 				getrootreq.server = server;
@@ -86,44 +85,58 @@ main {
 	} ] { nullProcess }
 
 	[ getSpec(request)(response) {
-		tempreq.prefix = "jpm";
-		tempreq.suffix = ".yaml";
-		createTempFile@FileUtils(tempreq)(tempfile);
+		scope(GetSpec) {
+			install(default => throw(ServerFault));
 
-		getfilereq.path = request.name+"-"+request.version+".jpmspec";
-		getfilereq.server = request.server;
-		getFile@Server(getfilereq)(data);
+			tempreq.prefix = "jpm";
+			tempreq.suffix = ".yaml";
+			createTempFile@FileUtils(tempreq)(tempfile);
 
-		writereq.content = data;
-		writereq.filename = tempfile;
-		writeFile@File(writereq)();
+			getfilereq.path = request.name+"-"+request.version+".jpmspec";
+			getfilereq.server = request.server;
+			getFile@Server(getfilereq)(data);
 
-		parse@YamlUtils(tempfile)(response)
+			writereq.content = data;
+			writereq.filename = tempfile;
+			writeFile@File(writereq)();
+
+			parse@YamlUtils(tempfile)(response)
+		}
 	} ] { nullProcess }
 
 	[ getPackage(request)(response) {
-		getfilereq.path = request.name+"-"+request.version+".zip";
-		getfilereq.server = request.server;
-		getFile@Server(getfilereq)(response)
+		scope(GetPackage) {
+			install(default => throw(ServerFault));
+
+			getfilereq.path = request.name+"-"+request.version+".zip";
+			getfilereq.server = request.server;
+			getFile@Server(getfilereq)(response)
+		}
 	} ] { nullProcess }
 
 	[ getRootManifest(request)(response) {
-		tempreq.prefix = "jpm";
-		tempreq.suffix = ".yaml";
-		createTempFile@FileUtils(tempreq)(tempfile);
+		scope(GetRootManifest) {
+			install(default => throw(ServerFault));
 
-		getfilereq.path = "root.yaml";
-		getfilereq.server = request.server;
-		getFile@Server(getfilereq)(data);
+			tempreq.prefix = "jpm";
+			tempreq.suffix = ".yaml";
+			createTempFile@FileUtils(tempreq)(tempfile);
 
-		writereq.content = data;
-		writereq.filename = tempfile;
-		writeFile@File(writereq)();
+			getfilereq.path = "root.yaml";
+			getfilereq.server = request.server;
+			getFile@Server(getfilereq)(data);
 
-		parse@YamlUtils(tempfile)(response)
+			writereq.content = data;
+			writereq.filename = tempfile;
+			writeFile@File(writereq)();
+
+			parse@YamlUtils(tempfile)(response)
+		}
 	} ] { nullProcess }
 
 	[ getFile(request)(response) {
+		install(TypeMismatch => throw(ServerFault));
+
 		if(Servers.(request.server).protocol == "http") {
 			http_location = Servers.(request.server).location;
 			getfilereq.path = request.path;
@@ -132,19 +145,23 @@ main {
 	} ] { nullProcess }
 
 	[ downloadPackage(request)() {
-		tempreq.prefix = request.name;
-		tempreq.suffix = ".zip";
-		createTempFile@FileUtils(tempreq)(tempfile);
+		scope(DownloadPackage) {
+			install(default => throw(ServerFault));
 
-		getPackage@Server(request)(pkgdata);
+			tempreq.prefix = request.name;
+			tempreq.suffix = ".zip";
+			createTempFile@FileUtils(tempreq)(tempfile);
 
-		writereq.content = pkgdata;
-		writereq.filename = tempfile;
-		writereq.format = "binary";
-		writeFile@File(writereq)();
-		
-		unzipreq.filename = tempfile;
-		unzipreq.targetPath = request.Config.datadir;
-		unzip@ZipUtils(unzipreq)()
+			getPackage@Server(request)(pkgdata);
+
+			writereq.content = pkgdata;
+			writereq.filename = tempfile;
+			writereq.format = "binary";
+			writeFile@File(writereq)();
+			
+			unzipreq.filename = tempfile;
+			unzipreq.targetPath = request.Config.datadir;
+			unzip@ZipUtils(unzipreq)()
+		}
 	} ] { nullProcess }
 }
