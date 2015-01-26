@@ -31,6 +31,6 @@ interface ServerInterface {
 		getSpec(ServerGetSpecRequest)(undefined) throws ServerFault,
 		getPackage(ServerGetPackageRequest)(raw) throws ServerFault,
 		getRootManifest(ServerGetRootManifestRequest)(undefined) throws ServerFault,
-		getFile(ServerGetFileRequest)(raw) throws ServerFault,
-		downloadPackage(ServerDownloadPackageRequest)(void) throws ServerFault
+		downloadPackage(ServerDownloadPackageRequest)(void) throws ServerFault,
+		getFile(ServerGetFileRequest)(raw) throws ServerFault
 }

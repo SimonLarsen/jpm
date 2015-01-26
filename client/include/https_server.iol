@@ -1,7 +1,7 @@
 include "file_server_interface.iol"
 
-outputPort HTTPServer {
-	Protocol: http {
+outputPort HTTPSServer {
+	Protocol: https {
 		.osc.getFile.alias = "%{path}"
 	}
 	Interfaces: FileServerInterface

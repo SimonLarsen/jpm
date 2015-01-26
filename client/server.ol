@@ -6,9 +6,12 @@ include "zip_utils.iol"
 include "yaml_utils.iol"
 include "string_utils.iol"
 include "version_utils.iol"
-include "http_server.iol"
 include "server_interface.iol"
 include "parse_config.iol"
+
+include "http_server.iol"
+include "https_server.iol"
+include "sodep_server.iol"
 
 execution { concurrent }
 
@@ -32,7 +35,16 @@ define parseServers {
 		if(parts.result[0] == "http") {
 			Servers.(server).location = "socket://" + parts.result[1];
 			Servers.(server).protocol = "http"
-		} else {
+		}
+		else if(parts.result[0] == "https") {
+			Servers.(server).location = "socket://" + parts.result[1];
+			Servers.(server).protocol = "https"
+		}
+		else if(parts.result[0] == "sodep") {
+			Servers.(server).location = "socket://" + parts.result[1];
+			Servers.(server).protocol = "sodep"
+		}
+		else {
 			println@Console("Server ["+server+"] unusable. Unsupported protocol "+parts.result[0])()
 		}
 	}
@@ -44,7 +56,9 @@ init {
 	parseServers;
 
 	// Make local pointer to output port locations
-	HTTPServer.location -> http_location
+	HTTPServer.location -> http_location;
+	HTTPSServer.location -> https_location;
+	SodepServer.location -> sodep_location
 }
 
 main {
@@ -134,16 +148,6 @@ main {
 		}
 	} ] { nullProcess }
 
-	[ getFile(request)(response) {
-		install(TypeMismatch => throw(ServerFault));
-
-		if(Servers.(request.server).protocol == "http") {
-			http_location = Servers.(request.server).location;
-			getfilereq.path = request.path;
-			getFile@HTTPServer(getfilereq)(response)
-		}
-	} ] { nullProcess }
-
 	[ downloadPackage(request)() {
 		scope(DownloadPackage) {
 			install(default => throw(ServerFault));
@@ -162,6 +166,25 @@ main {
 			unzipreq.filename = tempfile;
 			unzipreq.targetPath = request.Config.datadir;
 			unzip@ZipUtils(unzipreq)()
+		}
+	} ] { nullProcess }
+
+	[ getFile(request)(response) {
+		install(TypeMismatch => throw(ServerFault));
+
+		getfilereq.path = request.path;
+		protocol = Servers.(request.server).protocol;
+		if(protocol == "http") {
+			http_location = Servers.(request.server).location;
+			getFile@HTTPServer(getfilereq)(response)
+		}
+		else if(protocol == "https") {
+			https_location = Servers.(request.server).location;
+			getFile@HTTPSServer(getfilereq)(response)
+		}
+		else if(protocol == "sodep") {
+			sodep_location = Servers.(request.server).location;
+			getFile@SodepServer(getfilereq)(response)
 		}
 	} ] { nullProcess }
 }

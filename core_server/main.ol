@@ -5,7 +5,6 @@ include "protocols/http.iol"
 
 constants {
 	ContentDirectory = "www/",
-	DefaultPage = "index.html",
 	ServerLocation = "socket://localhost:8000"
 }
 

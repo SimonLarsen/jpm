@@ -7,7 +7,7 @@ include "client_interface.iol"
 include "web_page_interface.iol"
 
 constants {
-	WebLocation = "socket://localhost:8001/",
+	WebLocation = "socket://localhost:4000/",
 	ContentDirectory = "www/",
 }
 
