@@ -166,12 +166,21 @@ main {
 				page.data.title = "Search - jpm";
 				page.data.query = request.query;
 
-				search@Client(request.query)(packages);
-				for(i = 0, i < #packages.package, i++) {
+				search@Client(request.query)(pkgs);
+				for(i = 0, i < #pkgs.package, i++) {
+					valueToPrettyString@StringUtils(pkgs)(pretty);
+					println@Console(pretty)();
+
+					dependstr = "";
+					for(j = 0, j < #pkgs.package[i].depends, j++) {
+						dependstr += pkgs.package[i].depends[j].name
+						  + " >= " + pkgs.package[i].depends[j].version + ", "
+					};
 					page.data.rows +=
-					"<tr><td>"	+ packages.package[i].name + "</td>
-					<td>"		+ packages.package[i].server + "</td>
-					<td>"		+ packages.package[i].version + "</td></tr>"
+					"<tr><td>"	+ pkgs.package[i].name + "</td>
+					<td>"		+ pkgs.package[i].server + "</td>
+					<td>"		+ pkgs.package[i].version + "</td>
+					<td>"		+ dependstr + "</td></tr>"
 				};
 
 				present@WebPage(page)(response);

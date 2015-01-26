@@ -6,6 +6,7 @@ include "protocols/http.iol"
 constants {
 	ContentDirectory = "www/",
 	DefaultPage = "index.html",
+	ServerLocation = "socket://localhost:8000"
 }
 
 execution { concurrent }
@@ -22,8 +23,12 @@ inputPort HTTPInput {
 		.contentType -> mime;
 		.default = "default"
 	}
-	Location: "socket://localhost:8000"
+	Location: ServerLocation
 	Interfaces: HTTPInterface
+}
+
+init {
+	println@Console("Running server on " + ServerLocation)()
 }
 
 main

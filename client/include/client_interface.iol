@@ -15,6 +15,10 @@ type ClientSearchResponse : void {
 		.name : string
 		.server : string
 		.version : string
+		.depends[0,*] : void {
+			.name : string
+			.version : string
+		}
 	}
 }
 

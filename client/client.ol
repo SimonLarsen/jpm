@@ -168,11 +168,19 @@ main {
 		query = "SELECT * FROM sync_packages
 			WHERE name LIKE :searchstr ORDER BY server";
 		query.searchstr = "%" + searchstr + "%";
-		query@Database(query)(packages);
-		for(i = 0, i < #packages.row, i++) {
-			response.package[i].name = packages.row[i].NAME;
-			response.package[i].server = packages.row[i].SERVER;
-			response.package[i].version = packages.row[i].VERSION
+		query@Database(query)(pkgs);
+		for(i = 0, i < #pkgs.row, i++) {
+			response.package[i].name = pkgs.row[i].NAME;
+			response.package[i].server = pkgs.row[i].SERVER;
+			response.package[i].version = pkgs.row[i].VERSION;
+
+			query = "SELECT * FROM sync_depends WHERE name = :name";
+			query.name = response.package[i].name;
+			query@Database(query)(depends);
+			for(j = 0, j < #depends.row, j++) {
+				response.package[i].depends[j].name = depends.row[j].DEPENDS;
+				response.package[i].depends[j].version = depends.row[j].VERSION
+			}
 		}
 	} ] { nullProcess }
 
@@ -189,11 +197,11 @@ main {
 		query = "SELECT * FROM local_packages
 			WHERE name LIKE :searchstr ORDER BY server";
 		query.searchstr = "%" + searchstr + "%";
-		query@Database(query)(packages);
-		for(i = 0, i < #packages.row, i++) {
-			response.package[i].name = packages.row[i].NAME;
-			response.package[i].server = packages.row[i].SERVER;
-			response.package[i].version = packages.row[i].VERSION
+		query@Database(query)(pkgs);
+		for(i = 0, i < #pkgs.row, i++) {
+			response.package[i].name = pkgs.row[i].NAME;
+			response.package[i].server = pkgs.row[i].SERVER;
+			response.package[i].version = pkgs.row[i].VERSION
 		}
 	} ] { nullProcess }
 }
