@@ -170,21 +170,24 @@ main {
 	} ] { nullProcess }
 
 	[ getFile(request)(response) {
-		install(TypeMismatch => throw(ServerFault));
+		scope(GetFile) {
+			install(default => throw(ServerFault));
 
-		getfilereq.path = request.path;
-		protocol = Servers.(request.server).protocol;
-		if(protocol == "http") {
-			http_location = Servers.(request.server).location;
-			getFile@HTTPServer(getfilereq)(response)
-		}
-		else if(protocol == "https") {
-			https_location = Servers.(request.server).location;
-			getFile@HTTPSServer(getfilereq)(response)
-		}
-		else if(protocol == "sodep") {
-			sodep_location = Servers.(request.server).location;
-			getFile@SodepServer(getfilereq)(response)
+			getfilereq.path = request.path;
+			protocol = Servers.(request.server).protocol;
+
+			if(protocol == "http") {
+				http_location = Servers.(request.server).location;
+				getFile@HTTPServer(getfilereq)(response)
+			}
+			else if(protocol == "https") {
+				https_location = Servers.(request.server).location;
+				getFile@HTTPSServer(getfilereq)(response)
+			}
+			else if(protocol == "sodep") {
+				sodep_location = Servers.(request.server).location;
+				getFile@SodepServer(getfilereq)(response)
+			}
 		}
 	} ] { nullProcess }
 }
