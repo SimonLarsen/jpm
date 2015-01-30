@@ -21,23 +21,21 @@ init {
 }
 
 main {
-	[ getFile(request)(response) {
-		scope(s) {
-			install(FileNotFound =>
-				println@Console("File not found: " + request.path)()
-			);
+	[ getSpec(request)(response) {
+		file.filename = ContentDirectory+request.name+"-"+request.version+".jpmspec";
+		file.format = "text";
+		readFile@File(file)(response)
+	} ] { nullProcess }
 
-			file.filename = ContentDirectory + request.path;
-			getMimeType@File(file.filename)(mime);
-			mime.regex = "/";
-			split@StringUtils(mime)(s);
-			if(s.result[0] == "text") {
-				file.format = "text"
-			} else {
-				file.format = "binary"
-			};
+	[ getPackage(request)(response) {
+		file.filename = ContentDirectory+request.name+"-"+request.version+".zip";
+		file.format = "binary";
+		readFile@File(file)(response)
+	} ] { nullProcess }
 
-			readFile@File(file)(response)
-		}
+	[ getRootManifest()(response) {
+		file.filename = ContentDirectory + "root.yaml";
+		file.format = "text";
+		readFile@File(file)(response)
 	} ] { nullProcess }
 }

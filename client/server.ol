@@ -2,12 +2,12 @@ include "runtime.iol"
 include "console.iol"
 include "file.iol"
 include "file_utils.iol"
-include "zip_utils.iol"
-include "yaml_utils.iol"
 include "string_utils.iol"
 include "version_utils.iol"
 include "server_interface.iol"
-include "parse_config.iol"
+include "environment.iol"
+include "ini_utils.iol"
+include "yaml_utils.iol"
 
 include "http_server.iol"
 include "https_server.iol"
@@ -52,7 +52,6 @@ define parseServers {
 
 init {
 	getLocalLocation@Runtime()(Server.location);
-	parseConfig;
 	parseServers;
 
 	// Make local pointer to output port locations
@@ -102,15 +101,25 @@ main {
 		scope(GetSpec) {
 			install(default => throw(ServerFault));
 
+			server = request.server;
+			protocol = Servers.(server).protocol;
+			location = Servers.(server).location;
+			undef(request.server);
+
+			if(protocol == "http") {
+				http_location = location;
+				getSpec@HTTPServer(request)(spec)
+			}
+			else if(protocol == "sodep") {
+				sodep_location = location;
+				getSpec@SodepServer(request)(spec)
+			};
+
 			tempreq.prefix = "jpm";
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
 
-			getfilereq.path = request.name+"-"+request.version+".jpmspec";
-			getfilereq.server = request.server;
-			getFile@Server(getfilereq)(data);
-
-			writereq.content = data;
+			writereq.content = spec;
 			writereq.filename = tempfile;
 			writeFile@File(writereq)();
 
@@ -122,9 +131,19 @@ main {
 		scope(GetPackage) {
 			install(default => throw(ServerFault));
 
-			getfilereq.path = request.name+"-"+request.version+".zip";
-			getfilereq.server = request.server;
-			getFile@Server(getfilereq)(response)
+			server = request.server;
+			protocol = Servers.(server).protocol;
+			location = Servers.(server).location;
+			undef(request.server);
+
+			if(protocol == "http") {
+				http_location = location;
+				getPackage@HTTPServer(request)(response)
+			}
+			else if(protocol == "sodep") {
+				sodep_location = location;
+				getPackage@SodepServer(request)(response)
+			}
 		}
 	} ] { nullProcess }
 
@@ -132,62 +151,29 @@ main {
 		scope(GetRootManifest) {
 			install(default => throw(ServerFault));
 
+			server = request.server;
+			protocol = Servers.(server).protocol;
+			location = Servers.(server).location;
+			undef(request.server);
+
+			if(protocol == "http") {
+				http_location = location;
+				getRootManifest@HTTPServer(request)(rootmanifest)
+			}
+			else if(protocol == "sodep") {
+				sodep_location = location;
+				getRootManifest@SodepServer(request)(rootmanifest)
+			};
+
 			tempreq.prefix = "jpm";
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
 
-			getfilereq.path = "root.yaml";
-			getfilereq.server = request.server;
-			getFile@Server(getfilereq)(data);
-
-			writereq.content = data;
+			writereq.content = rootmanifest;
 			writereq.filename = tempfile;
 			writeFile@File(writereq)();
 
 			parse@YamlUtils(tempfile)(response)
-		}
-	} ] { nullProcess }
-
-	[ downloadPackage(request)() {
-		scope(DownloadPackage) {
-			install(default => throw(ServerFault));
-
-			tempreq.prefix = request.name;
-			tempreq.suffix = ".zip";
-			createTempFile@FileUtils(tempreq)(tempfile);
-
-			getPackage@Server(request)(pkgdata);
-
-			writereq.content = pkgdata;
-			writereq.filename = tempfile;
-			writereq.format = "binary";
-			writeFile@File(writereq)();
-			
-			unzipreq.filename = tempfile;
-			unzipreq.targetPath = request.Config.datadir;
-			unzip@ZipUtils(unzipreq)()
-		}
-	} ] { nullProcess }
-
-	[ getFile(request)(response) {
-		scope(GetFile) {
-			install(default => throw(ServerFault));
-
-			getfilereq.path = request.path;
-			protocol = Servers.(request.server).protocol;
-
-			if(protocol == "http") {
-				http_location = Servers.(request.server).location;
-				getFile@HTTPServer(getfilereq)(response)
-			}
-			else if(protocol == "https") {
-				https_location = Servers.(request.server).location;
-				getFile@HTTPSServer(getfilereq)(response)
-			}
-			else if(protocol == "sodep") {
-				sodep_location = Servers.(request.server).location;
-				getFile@SodepServer(getfilereq)(response)
-			}
 		}
 	} ] { nullProcess }
 }

@@ -138,7 +138,7 @@ main {
 		foreach(name : download) {
 			// Download package
 			println@Console("Installing: " + name + " " + download.(name).version)();
-			downloadPackage@Server(download.(name))();
+			//downloadPackage@Server(download.(name))();
 
 			// Update database
 			query << download.(name);

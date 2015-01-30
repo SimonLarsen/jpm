@@ -1,8 +1,16 @@
-type FileServerGetFileRequest : void {
-	.path : string
+type FileServerGetSpecRequest: void {
+	.name : string
+	.version : string
+}
+
+type FileServerGetPackageRequest : void {
+	.name : string
+	.version : string
 }
 
 interface FileServerInterface {
 	RequestResponse:
-		getFile(FileServerGetFileRequest)(undefined)
+		getSpec(FileServerGetSpecRequest)(string),
+		getPackage(FileServerGetPackageRequest)(raw),
+		getRootManifest(void)(string)
 }
