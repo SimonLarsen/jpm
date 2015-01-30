@@ -1,4 +1,4 @@
-include "version_utils_interface.iol"
+include "version_utils/version_utils_interface.iol"
 
 outputPort VersionUtils {
 	Interfaces: VersionUtilsInterface

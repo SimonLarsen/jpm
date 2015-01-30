@@ -1,4 +1,4 @@
-include "version_utils_interface.iol"
+include "version_utils/version_utils_interface.iol"
 include "string_utils.iol"
 
 execution { concurrent }
@@ -26,7 +26,12 @@ main {
 		done = false;
 		for(i = 0, i < parts && !done, i++) {
 			done = true;
-			if(aparts.result[i] == null) {
+			if(aparts.result[i] == "*"
+			|| bparts.result[i] == "*") {
+				response = 0;
+				done = false
+			}
+			else if(aparts.result[i] == null) {
 				response = 1
 			}
 			else if(bparts.result[i] == null) {

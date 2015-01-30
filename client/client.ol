@@ -124,27 +124,49 @@ main {
 		// Add requested packages
 		for(i = 0, i < #request.packages, i++) {
 			name = request.packages[i];
-			query = "SELECT * FROM sync_packages WHERE name = :name";
-			query.name = name;
-			query@Database(query)(packages);
-			if(#packages.row == 0) {
-				println@Console("Package " + name + " not found")();
-				throw(PackageNotFound)
-			};
-
-			download.(name).name = name;
-			download.(name).server = packages.row[0].SERVER;
-			download.(name).version = packages.row[0].VERSION
+			check.(name).name = name;
+			check.(name).version = "*"
 		};
 
 		// Resolve dependencies
+		changed = true;
+		while(changed) {
+			changed = false;
+			foreach(name : check) {
+				query = "SELECT * FROM sync_depends WHERE name = :name";
+				query.name = name;
+				query@Database(query)(packages);
+
+				for(i = 0, i < #packages.row, i++) {
+					depend = packages.row[i].DEPENDS;
+					if(download.(depend) == null && check.(depend) == null) {
+						changed = true;
+						newdepends.(depend).name = depend;
+						newdepends.(depend).version = packages.row[i].VERSION
+					}
+				};
+
+				download.(name) << check.(name)
+			};
+			undef(check);
+			check << newdepends;
+			undef(newdepends)
+		};
 
 		// Download needed packages
 		foreach(name : download) {
+			// Select package from sync DB
+			query = "SELECT * FROM sync_packages WHERE name = :name";
+			query.name = name;
+			query@Database(query)(packages);
+
+			download.(name).server = packages.row[i].SERVER;
+			download.(name).version = packages.row[i].VERSION;
+
 			// Download package
 			println@Console("Installing: " + name + " " + download.(name).version)();
 			
-			// Install package
+			// Download package from server
 			getPackage@Server(download.(name))(pkgdata);
 
 			// Unpack package

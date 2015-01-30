@@ -7,3 +7,6 @@ packages:
       versions:
           - "0.1"
           - "0.2"
+    - name: cowgreet
+      versions:
+          - "1.0"

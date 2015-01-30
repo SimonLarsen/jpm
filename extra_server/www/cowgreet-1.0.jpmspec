@@ -1,0 +1,7 @@
+---
+name: cowgreet
+version: "1.0"
+description: Cow that greets you
+depends:
+    - [username, "0.1"]
+    - [cowsay, "0.2"]
