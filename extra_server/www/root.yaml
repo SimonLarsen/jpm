@@ -3,6 +3,7 @@ packages:
     - name: username
       versions:
           - "0.1"
-    - name: empty
+    - name: cowsay
       versions:
-          - "1.0"
+          - "0.1"
+          - "0.2"
