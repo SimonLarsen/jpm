@@ -4,6 +4,7 @@ include "string_utils.iol"
 include "server_interface.iol"
 include "file.iol"
 include "file_utils.iol"
+include "zip_utils.iol"
 include "parse_config.iol"
 include "connect_database.iol"
 
@@ -116,6 +117,10 @@ main {
 	[ installPackages(request)() {
 		connectDatabase;
 
+		tempreq.prefix = "jpm";
+		tempreq.suffix = ".zip";
+		createTempFile@FileUtils(tempreq)(tempfile);
+
 		// Add requested packages
 		for(i = 0, i < #request.packages, i++) {
 			name = request.packages[i];
@@ -138,7 +143,18 @@ main {
 		foreach(name : download) {
 			// Download package
 			println@Console("Installing: " + name + " " + download.(name).version)();
-			//downloadPackage@Server(download.(name))();
+			
+			// Install package
+			getPackage@Server(download.(name))(pkgdata);
+
+			// Unpack package
+			writefilereq.content = pkgdata;
+			writefilereq.filename = tempfile;
+			writeFile@File(writefilereq)();
+
+			unzipreq.filename = tempfile;
+			unzipreq.targetPath = Config.datadir;
+			unzip@ZipUtils(unzipreq)();
 
 			// Update database
 			query << download.(name);

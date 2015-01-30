@@ -119,9 +119,9 @@ main {
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
 
-			writereq.content = spec;
-			writereq.filename = tempfile;
-			writeFile@File(writereq)();
+			writefilereq.content = spec;
+			writefilereq.filename = tempfile;
+			writeFile@File(writefilereq)();
 
 			parse@YamlUtils(tempfile)(response)
 		}
@@ -169,9 +169,9 @@ main {
 			tempreq.suffix = ".yaml";
 			createTempFile@FileUtils(tempreq)(tempfile);
 
-			writereq.content = rootmanifest;
-			writereq.filename = tempfile;
-			writeFile@File(writereq)();
+			writefilereq.content = rootmanifest;
+			writefilereq.filename = tempfile;
+			writeFile@File(writefilereq)();
 
 			parse@YamlUtils(tempfile)(response)
 		}
