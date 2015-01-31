@@ -26,10 +26,6 @@ define cmd_update {
 	update@Client()()
 }
 
-define cmd_upgrade {
-	upgrade@Client()()
-}
-
 define cmd_install {
 	for(i = 1, i < #args, i++) {
 		request.packages[i-1] = args[i]
@@ -71,9 +67,6 @@ main {
 	}
 	else if(args[0] == "update") {
 		cmd_update
-	}
-	else if(args[0] == "upgrade") {
-		cmd_upgrade
 	}
 	else if(args[0] == "install") {
 		cmd_install
