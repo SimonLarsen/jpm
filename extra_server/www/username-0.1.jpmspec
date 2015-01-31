@@ -1,5 +1,5 @@
 name: username
 version: "0.1"
-description: Retrieves current user name
+description: Retrieves current user's name
 depends:
     - [environment, "0.1"]

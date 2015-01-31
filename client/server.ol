@@ -9,7 +9,6 @@ include "environment.iol"
 include "yaml_utils.iol"
 
 include "http_server.iol"
-include "https_server.iol"
 include "sodep_server.iol"
 
 execution { concurrent }
@@ -53,7 +52,6 @@ init {
 
 	// Make local pointer to output port locations
 	HTTPServer.location -> http_location;
-	HTTPSServer.location -> https_location;
 	SodepServer.location -> sodep_location
 }
 
