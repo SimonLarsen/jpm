@@ -23,6 +23,7 @@ type WebEmptyRequest : void {
 
 type WebInstallPackagesRequest : void {
 	.sid : string
+	.packages? : string
 	.query? : string
 }
 

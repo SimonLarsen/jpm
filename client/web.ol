@@ -143,15 +143,7 @@ main {
 			} ] { nullProcess }
 
 			[ installPackages(request)(response) {
-				if(request.packages == null) {
-					page.layout = "default";
-					page.template = "installPackages";
-					page.data.title = "Install packages - jpm";
-					present@WebPage(page)(response);
-					undef(page);
-					format = "html"
-				}
-				else {
+				if (request.packages != null) {
 					splitreq = request.packages;
 					splitreq.regex = ",";
 					split@StringUtils(splitreq)(split);
@@ -161,8 +153,28 @@ main {
 						println@Console("Requested package: " + package)();
 						installreq.packages[i] = package
 					};
-					installPackages@Client(installreq)()
-				}
+
+					scope(InstallPackages) {
+						install(default =>
+							page.data.message = "
+							<div class=\"alert alert-danger\" role=\"alert\">
+								<p><b>Error.</b> Could not install packages.</p>
+							</div>"
+						);
+						installPackages@Client(installreq)();
+						page.data.message = "
+						<div class=\"alert alert-info\" role=\"alert\">
+							<p>Packages installed successfully.</p>
+						</div>"
+					}
+				};
+
+				page.layout = "default";
+				page.template = "installPackages";
+				page.data.title = "Install packages - jpm";
+				present@WebPage(page)(response);
+				undef(page);
+				format = "html"
 			} ] { nullProcess }
 
 			[ search(request)(response) {
