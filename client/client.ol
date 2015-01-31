@@ -114,13 +114,6 @@ main {
 	} ] { nullProcess }
 
 	/**
-	 * Upgrades all installed packages to newest
-	 */
-	[ upgrade(void)(void) {
-		println@Console("Upgrading packages")()
-	} ] { nullProcess }
-
-	/**
 	 * Installs one or more packages.
 	 */
 	[ installPackages(request)() {
@@ -182,16 +175,20 @@ main {
 			query@Database(query)(packages);
 
 			if(#packages.row == 0) {
-				println@Console("Package " + name + " not found")();
-				throw(DependencyFault)
+				if(download.(name).version == "*") {
+					clientfault.message = "Package " + name + " not found"
+				} else {
+					clientfault.message = "Depencency " + name + " not found"
+				};
+				throw(ClientFault, clientfault)
 			};
 
 			compreq.a = packages.row[0].VERSION;
 			compreq.b = download.(name).version;
 			compare@VersionUtils(compreq)(comparison);
 			if(comparison < 0) {
-				println@Console("Could not satisfy dependency " + name + " >= " + download.(name).version)();
-				throw(DependencyFault)
+				clientfault.message = "Could not satisfy dependency "+name+" >= " + download.(name).version;
+				throw(ClientFault, clientfault)
 			} else {
 				download.(name).version = packages.row[0].VERSION
 			}

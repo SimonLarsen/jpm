@@ -150,15 +150,15 @@ main {
 
 					for(i = 0, i < #split.result, i++) {
 						trim@StringUtils(split.result[i])(package);
-						println@Console("Requested package: " + package)();
 						installreq.packages[i] = package
 					};
 
 					page.template = "installPackagesMessage";
 					scope(InstallPackages) {
-						install(default =>
+						install(ClientFault =>
 							page.data.messagetype = "danger";
-							page.data.message = "<b>Error.</b> Could not install packages."
+							page.data.message = "<b>Error.</b> Could not install packages:<br>";
+							page.data.message += InstallPackages.ClientFault.message
 						);
 
 						installPackages@Client(installreq)();

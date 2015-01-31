@@ -23,11 +23,14 @@ type ClientSearchResponse : void {
 	}
 }
 
+type ClientFaultType : void {
+	.message : string
+}
+
 interface ClientInterface {
 	RequestResponse:
 		update(void)(undefined),
-		upgrade(void)(void),
-		installPackages(ClientInstallPackagesRequest)(void),
+		installPackages(ClientInstallPackagesRequest)(void) throws ClientFault(ClientFaultType),
 		search(string)(ClientSearchResponse),
 		list(string)(ClientPackageListResponse)
 }

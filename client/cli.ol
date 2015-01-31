@@ -34,7 +34,14 @@ define cmd_install {
 	for(i = 1, i < #args, i++) {
 		request.packages[i-1] = args[i]
 	};
-	installPackages@Client(request)()
+	scope(InstallPackages) {
+		install(ClientFault =>
+			println@Console("Could not install packages:")();
+			println@Console(InstallPackages.ClientFault.message)()
+		);
+
+		installPackages@Client(request)()
+	}
 }
 
 define cmd_search {
