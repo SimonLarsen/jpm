@@ -5,6 +5,9 @@ include "format.iol"
 include "web_interface.iol"
 include "client_interface.iol"
 include "web_page_interface.iol"
+include "yaml_utils.iol"
+include "environment.iol"
+include "parse_config.iol"
 
 constants {
 	WebLocation = "socket://localhost:4000/",
@@ -40,6 +43,7 @@ embedded {
 }
 
 init {
+	parseConfig;
 	println@Console("Web client running at adress: " + WebLocation)()
 }
 
@@ -84,16 +88,21 @@ main {
 	} ] { nullProcess }
 
 	[ login(request)(response) {
-		if(request.username != null && request.password != null) {
-			if(request.username == "admin" && request.password == "hunter2") {
-				page.template = "redirect";
-				page.data.url = "installPackages";
-				present@WebPage(page)(response);
-				undef(page);
+		if(request.username != null || request.password != null) {
+			loginCorrect = false;
+			for(i = 0, i < #Config.users, i++) {
+				if(request.username == Config.users[i].username
+				&& request.password == Config.users[i].password) {
+					page.template = "redirect";
+					page.data.url = "installPackages";
+					present@WebPage(page)(response);
+					undef(page);
 
-				response.sid = csets.sid = new
-			}
-			else {
+					response.sid = csets.sid = new;
+					loginCorrect = true
+				}
+			};
+			if(loginCorrect == false) {
 				page.template = "login_error";
 				present@WebPage(page)(response);
 				undef(page)
@@ -168,19 +177,11 @@ main {
 
 				search@Client(request.query)(pkgs);
 				for(i = 0, i < #pkgs.package, i++) {
-					valueToPrettyString@StringUtils(pkgs)(pretty);
-					println@Console(pretty)();
-
-					dependstr = "";
-					for(j = 0, j < #pkgs.package[i].depends, j++) {
-						dependstr += pkgs.package[i].depends[j].name
-						  + " >= " + pkgs.package[i].depends[j].version + ", "
-					};
 					page.data.rows +=
 					"<tr><td>"	+ pkgs.package[i].name + "</td>
 					<td>"		+ pkgs.package[i].server + "</td>
 					<td>"		+ pkgs.package[i].version + "</td>
-					<td>"		+ dependstr + "</td></tr>"
+					<td>"		+ pkgs.package[i].description + "</td></tr>"
 				};
 
 				present@WebPage(page)(response);

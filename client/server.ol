@@ -6,7 +6,6 @@ include "string_utils.iol"
 include "version_utils.iol"
 include "server_interface.iol"
 include "environment.iol"
-include "ini_utils.iol"
 include "yaml_utils.iol"
 
 include "http_server.iol"
@@ -26,19 +25,17 @@ inputPort Client {
 
 define parseServers {
 	getVariable@Environment("HOME")(ENV_HOME);
-	parseIniFile@IniUtils(ENV_HOME + "/.jpm/servers.ini")(inifile);
+	parse@YamlUtils(ENV_HOME + "/.jpm/servers.yaml")(yamlfile);
 
-	splitreq.regex = "://";
-	foreach(server : inifile) {
-		splitreq = inifile.(server).location;
+	for(i = 0, i < #yamlfile.list, i++) {
+		server = yamlfile.list[i].name;
+
+		splitreq.regex = "://";
+		splitreq = yamlfile.list[i].location;
 		split@StringUtils(splitreq)(parts);
 		if(parts.result[0] == "http") {
 			Servers.(server).location = "socket://" + parts.result[1];
 			Servers.(server).protocol = "http"
-		}
-		else if(parts.result[0] == "https") {
-			Servers.(server).location = "socket://" + parts.result[1];
-			Servers.(server).protocol = "https"
 		}
 		else if(parts.result[0] == "sodep") {
 			Servers.(server).location = "socket://" + parts.result[1];

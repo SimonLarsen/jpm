@@ -5,9 +5,12 @@ include "server_interface.iol"
 include "file.iol"
 include "file_utils.iol"
 include "zip_utils.iol"
-include "parse_config.iol"
 include "connect_database.iol"
 include "version_utils.iol"
+include "yaml_utils.iol"
+include "environment.iol"
+
+include "parse_config.iol"
 
 inputPort Input {
 	Location: "local"
