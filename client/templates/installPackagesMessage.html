@@ -1,6 +1,10 @@
 <h2>Install packages</h2>
 
 <form action="installPackages" method="GET">
+	<div class="alert alert-${messagetype}" role="alert">
+		<p>${message}</p>
+	</div>
+
 	<div class="form-group">
 		<label for="packages">Enter packages</label>
 		<input type="text" class="form-control" id="packages" name="packages" placeholder="Comma separated list of packages">

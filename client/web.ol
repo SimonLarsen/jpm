@@ -154,23 +154,23 @@ main {
 						installreq.packages[i] = package
 					};
 
+					page.template = "installPackagesMessage";
 					scope(InstallPackages) {
 						install(default =>
-							page.data.message = "
-							<div class=\"alert alert-danger\" role=\"alert\">
-								<p><b>Error.</b> Could not install packages.</p>
-							</div>"
+							page.data.messagetype = "danger";
+							page.data.message = "<b>Error.</b> Could not install packages."
 						);
+
 						installPackages@Client(installreq)();
-						page.data.message = "
-						<div class=\"alert alert-info\" role=\"alert\">
-							<p>Packages installed successfully.</p>
-						</div>"
+
+						page.data.messagetype = "info";
+						page.data.message = "Packages installed successfully."
 					}
+				} else {
+					page.template = "installPackages"
 				};
 
 				page.layout = "default";
-				page.template = "installPackages";
 				page.data.title = "Install packages - jpm";
 				present@WebPage(page)(response);
 				undef(page);
