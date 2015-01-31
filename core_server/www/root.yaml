@@ -3,3 +3,9 @@ packages:
     - name: environment
       versions:
           - "0.1"
+    - name: missing-dep
+      versions:
+          - "1.0"
+    - name: missing-dep-version
+      versions:
+          - "1.0"

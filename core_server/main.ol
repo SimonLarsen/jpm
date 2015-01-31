@@ -27,7 +27,7 @@ inputPort HTTPInput {
 }
 
 init {
-	println@Console("Running server on " + ServerLocation)()
+	println@Console("Running HTTP server on " + ServerLocation)()
 }
 
 main

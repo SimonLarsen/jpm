@@ -1,0 +1,6 @@
+---
+name: missing-dep
+version: "1.0"
+description: Package with a missing dependency.
+depends:
+    - [does-not-exist, "1.0"]

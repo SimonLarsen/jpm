@@ -8,49 +8,60 @@ inputPort Input {
 	Interfaces: VersionUtilsInterface
 }
 
-main {
-	[ compare(request)(response) {
-		asplit = request.a;
-		asplit.regex = "\\.";
-		split@StringUtils(asplit)(aparts);
+define compareVersions {
+	asplit = request.a;
+	asplit.regex = "\\.";
+	split@StringUtils(asplit)(aparts);
 
-		bsplit = request.b;
-		bsplit.regex = "\\.";
-		split@StringUtils(bsplit)(bparts);
+	bsplit = request.b;
+	bsplit.regex = "\\.";
+	split@StringUtils(bsplit)(bparts);
 
-		parts = #aparts.result;
-		if(#bparts.result > parts) {
-			parts = #bparts.result
-		};
+	if(#aparts.result > #bparts.result) {
+		parts = #aparts.result
+	} else {
+		parts = #bparts.result
+	};
 
-		done = false;
-		for(i = 0, i < parts && !done, i++) {
-			done = true;
-			if(aparts.result[i] == "*"
-			|| bparts.result[i] == "*") {
-				response = 0;
-				done = false
+	done = false;
+	for(i = 0, i < parts && !done, i++) {
+		done = true;
+		if(aparts.result[i] == null || aparts.result[i] == "*") {
+			comparison = -1
+		}
+		else if(bparts.result[i] == null || bparts.result[i] == "*") {
+			comparison = 1
+		}
+		else {
+			anum = int(aparts.result[i]);
+			bnum = int(bparts.result[i]);
+			if(anum < bnum) {
+				comparison = -1
 			}
-			else if(aparts.result[i] == null) {
-				response = 1
-			}
-			else if(bparts.result[i] == null) {
-				response = -1
+			else if(anum > bnum) {
+				comparison = 1
 			}
 			else {
-				anum = int(aparts.result[i]);
-				bnum = int(bparts.result[i]);
-				if(anum < bnum) {
-					response = -1
-				}
-				else if(anum > bnum) {
-					response = 1
-				}
-				else {
-					response = 0;
-					done = false
-				}
+				comparison = 0;
+				done = false
 			}
+		}
+	}
+}
+
+main {
+	[ compare(request)(response) {
+		compareVersions;
+		response = comparison
+	} ] { nullProcess }
+
+	[ max(request)(response) {
+		compareVersions;
+		if(comparison < 0) {
+			response = request.b
+		}
+		else {
+			response = request.a
 		}
 	} ] { nullProcess }
 }

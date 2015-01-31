@@ -19,6 +19,7 @@ type ClientSearchResponse : void {
 			.name : string
 			.version : string
 		}
+		.description : string
 	}
 }
 

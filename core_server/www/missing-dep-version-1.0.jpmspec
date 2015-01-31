@@ -1,0 +1,6 @@
+---
+name: missing-dep-version
+version: "1.0"
+description: Package depending on package version higher than available.
+depends:
+    - [environment, "0.2"]

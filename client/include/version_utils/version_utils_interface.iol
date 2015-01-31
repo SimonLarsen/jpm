@@ -3,13 +3,23 @@ type VersionCompareRequest : void {
 	.b : string
 }
 
+type VersionMaxRequest : void {
+	.a : string
+	.b : string
+}
+
 interface VersionUtilsInterface {
 	RequestResponse:
 		/**!
 		 * Compares two version strings.
 		 * Returns < 0 if a is older than b,
 		 * 0 if the versions are equal and
-		 * > 0 if a is newer than be.
+		 * > 0 if a is newer than b.
 		 */
-		compare(VersionCompareRequest)(int)
+		compare(VersionCompareRequest)(int),
+		/**
+		 * Returns the greater of the two versions.
+		 * Defaults to first string if versions are equal.
+		 */
+		max(VersionMaxRequest)(string)
 }

@@ -7,6 +7,7 @@ include "file_utils.iol"
 include "zip_utils.iol"
 include "parse_config.iol"
 include "connect_database.iol"
+include "version_utils.iol"
 
 inputPort Input {
 	Location: "local"
@@ -33,7 +34,8 @@ define setupDatabase {
 		update@Database("CREATE TABLE sync_packages (
 			name VARCHAR(128) NOT NULL UNIQUE,
 			server VARCHAR(128) NOT NULL,
-			version VARCHAR(64) NOT NULL
+			version VARCHAR(64) NOT NULL,
+			description VARCHAR(1024) NOT NULL
 		)")()
 	};
 
@@ -86,18 +88,22 @@ main {
 		getPackageList@Server()(packages);
 
 		foreach(name : packages) {
+			getSpec@Server(packages.(name))(spec);
+
 			query << packages.(name);
-			query = "INSERT INTO sync_packages VALUES (:name, :server, :version)";
+			query.description = spec.description;
+			query = "INSERT INTO sync_packages
+				VALUES (:name, :server, :version, :description)";
 			update@Database(query)();
 
 			response.(packages.(name).server).count++;
 
-			getSpec@Server(packages.(name))(spec);
 			for(i = 0, i < #spec.depends.list, i++) {
 				query.depends = spec.depends.list[i].list[0];
 				query.depversion = spec.depends.list[i].list[1];
 
-				query = "INSERT INTO sync_depends VALUES (:name, :depends, :depversion)";
+				query = "INSERT INTO sync_depends
+					VALUES (:name, :depends, :depversion)";
 				update@Database(query)()
 			}
 
@@ -139,18 +145,53 @@ main {
 
 				for(i = 0, i < #packages.row, i++) {
 					depend = packages.row[i].DEPENDS;
-					if(download.(depend) == null && check.(depend) == null) {
-						changed = true;
+					if(download.(depend) == null) {
+						changed = true
+					};
+
+					if(newpedends.(depends) == null) {
 						newdepends.(depend).name = depend;
 						newdepends.(depend).version = packages.row[i].VERSION
+					} else {
+						compreq.a = packages.row[i].VERSION;
+						compreq.b = newdepends.(depend).version;
+						max@VersionUtils(compreq)(newdepends.(depend).version)
 					}
 				};
 
-				download.(name) << check.(name)
+				if(download.(name) == null) {
+					download.(name) << check.(name)
+				} else {
+					compreq.a = check.(name).version;
+					compreq.b = download.(name).version;
+					max@VersionUtils(compreq)(download.(name).version)
+				}
 			};
 			undef(check);
 			check << newdepends;
 			undef(newdepends)
+		};
+
+		// Check that requested versions are available
+		foreach(name : download) {
+			query = "SELECT * FROM sync_packages WHERE name = :name";
+			query.name = name;
+			query@Database(query)(packages);
+
+			if(#packages.row == 0) {
+				println@Console("Package " + name + " not found")();
+				throw(DependencyFault)
+			};
+
+			compreq.a = packages.row[0].VERSION;
+			compreq.b = download.(name).version;
+			compare@VersionUtils(compreq)(comparison);
+			if(comparison < 0) {
+				println@Console("Could not satisfy dependency " + name + " >= " + download.(name).version)();
+				throw(DependencyFault)
+			} else {
+				download.(name).version = packages.row[0].VERSION
+			}
 		};
 
 		// Download needed packages
@@ -163,13 +204,10 @@ main {
 			download.(name).server = packages.row[i].SERVER;
 			download.(name).version = packages.row[i].VERSION;
 
-			// Download package
 			println@Console("Installing: " + name + " " + download.(name).version)();
 			
-			// Download package from server
+			// Download/unpack package
 			getPackage@Server(download.(name))(pkgdata);
-
-			// Unpack package
 			writefilereq.content = pkgdata;
 			writefilereq.filename = tempfile;
 			writeFile@File(writefilereq)();
@@ -208,16 +246,21 @@ main {
 		query.searchstr = "%" + searchstr + "%";
 		query@Database(query)(pkgs);
 		for(i = 0, i < #pkgs.row, i++) {
-			response.package[i].name = pkgs.row[i].NAME;
-			response.package[i].server = pkgs.row[i].SERVER;
-			response.package[i].version = pkgs.row[i].VERSION;
+			with(response.package[i]) {
+				.name = pkgs.row[i].NAME;
+				.server = pkgs.row[i].SERVER;
+				.version = pkgs.row[i].VERSION;
+				.description = pkgs.row[i].DESCRIPTION
+			};
 
 			query = "SELECT * FROM sync_depends WHERE name = :name";
 			query.name = response.package[i].name;
 			query@Database(query)(depends);
 			for(j = 0, j < #depends.row, j++) {
-				response.package[i].depends[j].name = depends.row[j].DEPENDS;
-				response.package[i].depends[j].version = depends.row[j].VERSION
+				with(response.package[i].depends[j]) {
+					.name = depends.row[j].DEPENDS;
+					.version = depends.row[j].VERSION
+				}
 			}
 		}
 	} ] { nullProcess }

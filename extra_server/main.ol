@@ -17,7 +17,7 @@ inputPort Input {
 }
 
 init {
-	println@Console("Running server on " + ServerLocation)()
+	println@Console("Running SODEP server on " + ServerLocation)()
 }
 
 main {
