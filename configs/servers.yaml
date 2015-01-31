@@ -1,0 +1,6 @@
+- name: core
+  location: http://localhost:8000
+- name: extra
+  location: sodep://localhost:8001
+- name: invalid
+  location: http://localhost:1234

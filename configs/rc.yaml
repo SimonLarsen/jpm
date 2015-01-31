@@ -1,0 +1,5 @@
+users:
+    - username: admin
+      password: hunter2
+    - username: foo
+      password: bar
